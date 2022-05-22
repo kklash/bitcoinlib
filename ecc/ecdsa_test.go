@@ -1,0 +1,52 @@
+package ecc
+
+import (
+	"encoding/hex"
+	"encoding/json"
+	"os"
+	"testing"
+
+	"github.com/kklash/ekliptic"
+)
+
+func TestECDSA(t *testing.T) {
+	curve := new(ekliptic.Curve)
+
+	var fixtures []map[string]string
+
+	fixtureData, err := os.ReadFile("ecdsa_fixtures.json")
+	if err != nil {
+		t.Errorf("failed to read ECDSA fixtures: %s", err)
+		return
+	}
+
+	if err := json.Unmarshal(fixtureData, &fixtures); err != nil {
+		t.Errorf("failed to parse ECDSA fixtures: %s", err)
+		return
+	}
+
+	for _, fixture := range fixtures {
+		hash, _ := hex.DecodeString(fixture["hash"])
+		privateKey, _ := hex.DecodeString(fixture["d"])
+		expectedR, expectedS := pointAtHex(fixture["r"], fixture["s"])
+
+		r, s := SignECDSA(privateKey, hash)
+		if !equal(r, expectedR) || !equal(s, expectedS) {
+			t.Errorf(
+				"Expected (r, s) point:\n(\n %X,\n %X\n)\nGot point \n(\n %X,\n %X\n)",
+				expectedR, expectedS,
+				r, s,
+			)
+			return
+		}
+		pubX, pubY := curve.ScalarBaseMult(privateKey)
+		if !VerifyECDSA(hash, r, s, pubX, pubY) {
+			t.Errorf("Expected signature to be verified as valid:\n(\n %X,\n %X\n)", r, s)
+		}
+
+		pubX, pubY = curve.ScalarBaseMult(seven.Bytes())
+		if VerifyECDSA(hash, r, s, pubX, pubY) {
+			t.Errorf("Expected signature to be invalid with wrong pub key:\n(\n %X,\n %X\n)", r, s)
+		}
+	}
+}

@@ -9,6 +9,7 @@ use (
 	./common
 	./constants
 	./der
+	./ecc
 	./satutil
 	./script
 	./tx
