@@ -1,3 +1,7 @@
 go 1.18
 
-use ./constants
+use (
+  ./bhash
+  ./constants
+  ./vendor/ripemd160
+)

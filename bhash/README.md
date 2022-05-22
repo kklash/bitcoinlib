@@ -1,0 +1,2 @@
+# bhash
+Bitcoin hashing utilities.
