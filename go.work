@@ -8,6 +8,7 @@ use (
 	./bhash
 	./common
 	./constants
+	./der
 	./satutil
 	./script
 	./tx
