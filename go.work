@@ -6,6 +6,7 @@ use (
 	./base58check
 	./bech32
 	./bhash
+	./bip32
 	./common
 	./constants
 	./der
