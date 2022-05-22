@@ -5,6 +5,7 @@ use (
 	./base58check
 	./bhash
 	./constants
+	./script
 	./varint
 	./vendor/ripemd160
 )
