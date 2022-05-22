@@ -14,6 +14,7 @@ use (
 	./constants
 	./der
 	./ecc
+	./feecalc
 	./rpc
 	./satutil
 	./script
