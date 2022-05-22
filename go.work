@@ -3,6 +3,7 @@ go 1.18
 use (
 	./base58
 	./base58check
+	./bech32
 	./bhash
 	./constants
 	./script
