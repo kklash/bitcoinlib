@@ -12,4 +12,5 @@ use (
 	./tx
 	./varint
 	./vendor/ripemd160
+	./wif
 )
