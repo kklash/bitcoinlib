@@ -14,6 +14,5 @@ use (
 	./script
 	./tx
 	./varint
-	./vendor/ripemd160
 	./wif
 )
