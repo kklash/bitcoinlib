@@ -14,6 +14,7 @@ use (
 	./constants
 	./der
 	./ecc
+	./rpc
 	./satutil
 	./script
 	./tx
