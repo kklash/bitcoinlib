@@ -17,6 +17,7 @@ use (
 	./satutil
 	./script
 	./tx
+	./unspent
 	./varint
 	./wif
 )
