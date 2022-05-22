@@ -9,6 +9,7 @@ use (
 	./bip32
 	./bip38
 	./bip39
+	./blocks
 	./common
 	./constants
 	./der

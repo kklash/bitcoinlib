@@ -1,4 +1,4 @@
-MODULES = $(shell find . -name go.mod | sed s:/go.mod::g)
+MODULES = $(shell find . -name go.mod | sed s:/go.mod:/...:g)
 
 .PHONY: test
 test:
