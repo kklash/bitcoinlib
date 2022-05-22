@@ -1,6 +1,7 @@
 go 1.18
 
 use (
+	./address
 	./base58
 	./base58check
 	./bech32
