@@ -5,6 +5,7 @@ use (
 	./base58check
 	./bech32
 	./bhash
+	./common
 	./constants
 	./script
 	./varint
