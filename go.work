@@ -8,6 +8,7 @@ use (
 	./bhash
 	./bip32
 	./bip38
+	./bip39
 	./common
 	./constants
 	./der
