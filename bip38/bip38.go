@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -73,15 +74,6 @@ func concatBytes(slices ...[]byte) []byte {
 	return result
 }
 
-func encodeUint32(n uint32) []byte {
-	buf := make([]byte, 4)
-	for i := 3; n > 0; i-- {
-		buf[i] = byte(n & 0xff)
-		n >>= 8
-	}
-	return buf
-}
-
 func deriveKey(password string, salt []byte, length int) []byte {
 	dk, _ := scrypt.Key([]byte(password), salt, scryptN, scryptR, scryptP, length)
 	return dk
@@ -125,7 +117,9 @@ func encodeLotSequence(lot, sequence uint32) []byte {
 	if sequence > 0xfff {
 		panic("invalid bip38 sequence number")
 	}
-	return encodeUint32((lot << 12) + sequence)
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, (lot<<12)+sequence)
+	return buf
 }
 
 func generateIntermediateCodeWithLotSequence(password string, lot, sequence uint32) string {
