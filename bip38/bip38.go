@@ -4,8 +4,6 @@ package bip38
 import (
 	"bytes"
 	"crypto/aes"
-	"crypto/rand"
-	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -13,15 +11,8 @@ import (
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/bhash"
 	"github.com/kklash/bitcoinlib/bip32"
-	"github.com/kklash/bitcoinlib/ecc"
 	"github.com/kklash/ekliptic"
 	"golang.org/x/crypto/scrypt"
-)
-
-const (
-	scryptN = 16384
-	scryptR = 8
-	scryptP = 8
 )
 
 var (
@@ -74,11 +65,6 @@ func concatBytes(slices ...[]byte) []byte {
 	return result
 }
 
-func deriveKey(password string, salt []byte, length int) []byte {
-	dk, _ := scrypt.Key([]byte(password), salt, scryptN, scryptR, scryptP, length)
-	return dk
-}
-
 func deriveAddress(privateKey []byte, compressed bool) (string, error) {
 	publicKey := bip32.Neuter(privateKey, compressed)
 
@@ -110,72 +96,16 @@ func encodeFlagByte(compressed, ecMultiply, lotAndSequence bool) byte {
 	return flagByte
 }
 
-func encodeLotSequence(lot, sequence uint32) []byte {
-	if lot > 0xfffff {
-		panic("invalid bip38 lot number")
-	}
-	if sequence > 0xfff {
-		panic("invalid bip38 sequence number")
-	}
-	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, (lot<<12)+sequence)
-	return buf
-}
-
-func generateIntermediateCodeWithLotSequence(password string, lot, sequence uint32) string {
-	lotSequence := encodeLotSequence(lot, sequence)
-
-	var ownerSalt [4]byte
-	rand.Read(ownerSalt[:])
-	prefactor := deriveKey(password, ownerSalt[:], 32)
-	ownerEntropy := concatBytes(ownerSalt[:], lotSequence)
-
-	passFactor := bhash.DoubleSha256(concatBytes(prefactor, ownerEntropy))
-	ppX, ppY := secp.ScalarBaseMult(passFactor[:])
-	passPoint := ecc.SerializePointCompressed(ppX, ppY)
-
-	intermediateCode := concatBytes(
-		[]byte{0x2C, 0xE9, 0xB3, 0xE1, 0xFF, 0x39, 0xE2, 0x51}, // base58 encoded as 'passphrase'
-		ownerEntropy,
-		passPoint,
-	)
-
-	return base58check.Encode(intermediateCode)
-}
-
-func generateIntermediateCode(password string) string {
-	var ownerEntropy [8]byte
-	rand.Read(ownerEntropy[:])
-	passFactor := deriveKey(password, ownerEntropy[:], 32)
-
-	ppX, ppY := secp.ScalarBaseMult(passFactor[:])
-	passPoint := ecc.SerializePointCompressed(ppX, ppY)
-
-	intermediateCode := concatBytes(
-		[]byte{0x2C, 0xE9, 0xB3, 0xE1, 0xFF, 0x39, 0xE2, 0x53}, // base58 encoded as 'passphrase'
-		ownerEntropy[:],
-		passPoint,
-	)
-
-	return base58check.Encode(intermediateCode)
-}
-
-func encrypt(
-	privateKey []byte,
-	password string,
-	compressed bool,
-	ecMultiply bool,
-	lotAndSequence bool,
-) (string, error) {
+func Encrypt(privateKey []byte, password string, compressed bool) (string, error) {
 	if len(privateKey) != 32 {
 		return "", ErrInvalidPrivateKey
 	}
 
 	payloadBuf := new(bytes.Buffer)
 
-	payloadBuf.Write(prefixBytes(ecMultiply))
+	payloadBuf.Write(prefixBytes(false))
 	payloadBuf.WriteByte(
-		encodeFlagByte(compressed, ecMultiply, lotAndSequence),
+		encodeFlagByte(compressed, false, false),
 	)
 
 	expectedAddress, err := deriveAddress(privateKey, compressed)
@@ -188,10 +118,13 @@ func encrypt(
 
 	payloadBuf.Write(hashedAddressSalt)
 
-	scryptedKey := deriveKey(password, hashedAddressSalt, 64)
+	scryptedKey, err := scrypt.Key([]byte(password), hashedAddressSalt, 16384, 8, 8, 64)
+	if err != nil {
+		return "", err
+	}
 	dk1, dk2 := scryptedKey[:32], scryptedKey[32:]
 
-	cipher, err := aes.NewCipher(dk2)
+	block, err := aes.NewCipher(dk2)
 	if err != nil {
 		return "", err
 	}
@@ -200,8 +133,8 @@ func encrypt(
 		encryptedHalf1 [16]byte
 		encryptedHalf2 [16]byte
 	)
-	cipher.Encrypt(encryptedHalf1[:], xorBytes(privateKey[:16], dk1[:16]))
-	cipher.Encrypt(encryptedHalf2[:], xorBytes(privateKey[16:], dk1[16:]))
+	block.Encrypt(encryptedHalf1[:], xorBytes(privateKey[:16], dk1[:16]))
+	block.Encrypt(encryptedHalf2[:], xorBytes(privateKey[16:], dk1[16:]))
 
 	payloadBuf.Write(encryptedHalf1[:])
 	payloadBuf.Write(encryptedHalf2[:])
@@ -210,7 +143,7 @@ func encrypt(
 	return encryptedKeyString, nil
 }
 
-func decrypt(
+func Decrypt(
 	encryptedKeyString string,
 	password string,
 ) (
@@ -231,19 +164,50 @@ func decrypt(
 		return nil, false, fmt.Errorf("%w: key prefix byte incorrect", ErrInvalidEncryptedKey)
 	}
 
-	if decodedEncryptedKey[1] == 0x43 {
-		return nil, false, fmt.Errorf("%w: ecMultiply keys are not supported", ErrInvalidEncryptedKey)
-	} else if decodedEncryptedKey[1] != 0x42 {
+	switch decodedEncryptedKey[1] {
+	case 0x43:
+		privateKey, compressed, err = decryptECMult(decodedEncryptedKey, password)
+	case 0x42:
+		privateKey, compressed, err = decrypt(decodedEncryptedKey, password)
+	default:
 		return nil, false, fmt.Errorf("%w: ecMultiply byte incorrect", ErrInvalidEncryptedKey)
 	}
+	if err != nil {
+		return nil, false, err
+	}
 
+	addr, err := deriveAddress(privateKey, compressed)
+	if err != nil {
+		return nil, false, err
+	}
+
+	addressHash := decodedEncryptedKey[3:7]
+	derivedAddressHash := bhash.DoubleSha256([]byte(addr))
+	if !bytes.Equal(derivedAddressHash[:4], addressHash) {
+		return nil, false, fmt.Errorf("%w: derived P2PKH address does not match checksum", ErrDecryptionFailed)
+	}
+
+	return privateKey, compressed, nil
+}
+
+func decrypt(
+	decodedEncryptedKey []byte,
+	password string,
+) (
+	privateKey []byte,
+	compressed bool,
+	err error,
+) {
 	if decodedEncryptedKey[2]&0b11000000 == 0 {
 		return nil, false, fmt.Errorf("%w: ecMultiply keys are not supported", ErrInvalidEncryptedKey)
 	}
 	compressed = decodedEncryptedKey[2]&0b00100000 != 0
-	hashedAddressSalt := decodedEncryptedKey[3:7]
+	addressHash := decodedEncryptedKey[3:7]
 
-	scryptedKey := deriveKey(password, hashedAddressSalt, 64)
+	scryptedKey, err := scrypt.Key([]byte(password), addressHash, 16384, 8, 8, 64)
+	if err != nil {
+		return nil, false, err
+	}
 	dk1, dk2 := scryptedKey[:32], scryptedKey[32:]
 
 	cipher, err := aes.NewCipher(dk2)
@@ -260,16 +224,6 @@ func decrypt(
 
 	copy(privateKey[:16], xorBytes(decryptedPayload[:16], dk1[:16]))
 	copy(privateKey[16:], xorBytes(decryptedPayload[16:], dk1[16:]))
-
-	addr, err := deriveAddress(privateKey, compressed)
-	if err != nil {
-		return nil, false, err
-	}
-
-	hashedAddress := bhash.DoubleSha256([]byte(addr))
-	if !bytes.Equal(hashedAddress[:4], hashedAddressSalt) {
-		return nil, false, fmt.Errorf("%w: derived P2PKH address does not match checksum", ErrDecryptionFailed)
-	}
 
 	return privateKey, compressed, nil
 }
