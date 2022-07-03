@@ -36,12 +36,12 @@ func TestECDSA(t *testing.T) {
 			return
 		}
 		publicKey := GetPublicKeyCompressed(privateKey)
-		if !VerifyECDSA(hash, r, s, publicKey) {
+		if !VerifyECDSA(publicKey, hash, r, s) {
 			t.Errorf("Expected signature to be verified as valid:\n(\n %X,\n %X\n)", r, s)
 		}
 
 		publicKey = GetPublicKeyCompressed([]byte{7})
-		if VerifyECDSA(hash, r, s, publicKey) {
+		if VerifyECDSA(publicKey, hash, r, s) {
 			t.Errorf("Expected signature to be invalid with wrong pub key:\n(\n %X,\n %X\n)", r, s)
 		}
 	}

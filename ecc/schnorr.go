@@ -1,64 +1,136 @@
 package ecc
 
 import (
-	"crypto/sha256"
 	"math/big"
 
+	"github.com/kklash/bitcoinlib/bhash"
+	"github.com/kklash/bitcoinlib/common"
+	"github.com/kklash/bitcoinlib/constants"
 	"github.com/kklash/ekliptic"
 )
 
-func newTaggedHasher(tag string) func(...[]byte) []byte {
-	hashedTag := sha256.Sum256([]byte(tag))
-	return func(chunks ...[]byte) []byte {
-		h := sha256.New()
-		h.Write(append(hashedTag[:], hashedTag[:]...))
-		for _, chunk := range chunks {
-			h.Write(chunk)
-		}
-		return h.Sum(nil)
-	}
-}
-
 var (
-	bip340ChallengeHasher = newTaggedHasher("BIP0340/challenge")
-	bip340AuxHasher       = newTaggedHasher("BIP0340/aux")
-	bip340NonceHasher     = newTaggedHasher("BIP0340/nonce")
+	bip340ChallengeHasher = bhash.NewTaggedHasher("BIP0340/challenge")
+	bip340AuxHasher       = bhash.NewTaggedHasher("BIP0340/aux")
+	bip340NonceHasher     = bhash.NewTaggedHasher("BIP0340/nonce")
 )
 
-func liftX(x *big.Int) *big.Int {
-	y, _ := ekliptic.Weierstrass(x)
-	return y
+// SignSchnorr signs a given 32-byte messageHash with the given private key,
+// using auxRand as the seed to derive a nonce value.
+func SignSchnorr(privateKey, messageHash, auxRand []byte) []byte {
+	if len(messageHash) != 32 {
+		panic("unexpected message hash length for schnorr signature")
+	} else if len(privateKey) != 32 {
+		panic("unexpected private key length for schnorr signature")
+	} else if len(auxRand) != 32 {
+		panic("unexpected aux rand length for schnorr signature")
+	}
+
+	d := new(big.Int).SetBytes(privateKey)
+	if !IsValidCurveScalar(d) {
+		panic("private key is not in range [1, N)")
+	}
+
+	pubX := new(big.Int)
+	pubY := new(big.Int)
+	ekliptic.MultiplyBasePoint(d, pubX, pubY)
+
+	if !isEven(pubY) {
+		d.Sub(ekliptic.Secp256k1_CurveOrder, d)
+	}
+
+	pubBytes := pubX.FillBytes(make([]byte, 32))
+
+	t := common.XorBytes(
+		d.FillBytes(make([]byte, 32)),
+		bip340AuxHasher(auxRand),
+	)
+
+	rnd := bip340NonceHasher(t, pubBytes, messageHash)
+
+	k := new(big.Int).SetBytes(rnd)
+	k.Mod(k, ekliptic.Secp256k1_CurveOrder)
+	if equal(k, zero) {
+		panic("schnorr signature produced unexpected k of zero")
+	}
+
+	rX := new(big.Int)
+	rY := new(big.Int)
+	ekliptic.MultiplyBasePoint(k, rX, rY)
+
+	if !isEven(rY) {
+		k.Sub(ekliptic.Secp256k1_CurveOrder, k)
+	}
+
+	rBytes := rX.FillBytes(make([]byte, 32))
+
+	e := new(big.Int).SetBytes(
+		bip340ChallengeHasher(
+			rBytes,
+			pubBytes,
+			messageHash,
+		),
+	)
+	e.Mod(e, ekliptic.Secp256k1_CurveOrder)
+
+	s := k.Add(k, e.Mul(e, d))
+	s.Mod(s, ekliptic.Secp256k1_CurveOrder)
+	k, e = nil, nil
+
+	sig := append(rBytes, s.FillBytes(make([]byte, 32))...)
+	return sig
 }
 
-// func (curve *Curve) schnorrSign(d *big.Int, hash, auxRand []byte) (*big.Int, *big.Int) {
-// 	if len(hash) != 32 {
-// 		panic("unexpected hash length for schnorr signature")
-// 	} else if len(auxRand) != 32 {
-// 		panic("unexpected aux rand data length for schnorr signature")
-// 	}
+// VerifySchnorr returns true if the given signature was made by the owner of the given public key
+// on the given message hash.
+func VerifySchnorr(pubBytes, messageHash, sig []byte) bool {
+	if len(messageHash) != 32 {
+		panic("unexpected message hash length for schnorr verification")
+	} else if len(sig) != 64 {
+		panic("unexpected signature length for schnorr verification")
+	}
 
-// 	// k := curve.q.Nonce(d, hash, sha256.New)
-// 	a := parse256(auxRand)
-// 	rX, _ := curve.multiplyScalar(curve.Gx, curve.Gy, a)
-// 	pubX, pubY := curve.multiplyScalar(curve.Gx, curve.Gy, d)
+	if len(pubBytes) != constants.PublicKeySchnorrLength {
+		return false
+	}
 
-// 	if !isEven(pubY) {
-// 		d = new(big.Int).Sub(curve.N, d)
-// 	}
+	pubX, pubY, err := DeserializePoint(pubBytes)
+	if err != nil {
+		return false
+	}
 
-// 	var hashable [96]byte
-// 	copy(hashable[:], Serialize256(rX))
-// 	copy(hashable[32:], Serialize256(pubX))
-// 	copy(hashable[64:], hash)
+	rBytes := sig[:32]
+	r := new(big.Int).SetBytes(rBytes)
+	if r.Cmp(ekliptic.Secp256k1_P) >= 0 {
+		return false
+	}
 
-// 	hashed := sha256.Sum256(hashable[:])
-// 	hashedInt := new(big.Int).SetBytes(hashed[:])
-// 	hd := new(big.Int).Mul(hashedInt, d)
+	s := new(big.Int).SetBytes(sig[32:])
+	if s.Cmp(ekliptic.Secp256k1_CurveOrder) >= 0 {
+		return false
+	}
 
-// 	// s = k - d * SHA(Rx || pkX || h)
-// 	s := new(big.Int).Sub(k, hd)
+	e := new(big.Int).SetBytes(
+		bip340ChallengeHasher(
+			r.FillBytes(make([]byte, 32)),
+			pubBytes,
+			messageHash,
+		),
+	)
+	e.Mod(e, ekliptic.Secp256k1_CurveOrder)
 
-// 	// TODO additional changes needed, read full spec
-// 	// https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki
-// 	return rX, s
-// }
+	sgx := new(big.Int)
+	sgy := new(big.Int)
+	ekliptic.MultiplyBasePoint(s, sgx, sgy)
+
+	epx := new(big.Int)
+	epy := new(big.Int)
+	ekliptic.MultiplyAffine(pubX, pubY, e, epx, epy, nil)
+	ekliptic.Negate(epy)
+
+	Rx := new(big.Int)
+	Ry := new(big.Int)
+	ekliptic.AddAffine(sgx, sgy, epx, epy, Rx, Ry)
+
+	return !equal(Rx, zero) && !equal(Ry, zero) && isEven(Ry) && equal(Rx, r)
+}

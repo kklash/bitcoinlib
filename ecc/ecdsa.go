@@ -14,10 +14,16 @@ var Q = rfc6979.NewQ(ekliptic.Secp256k1_CurveOrder)
 // returns the two components of the signature: r and s.
 //
 // SignECDSA calculates the secret signature nonce value k deterministically using RFC6979.
-func SignECDSA(privateKey, hash []byte) (r, s *big.Int) {
+func SignECDSA(privateKey, messageHash []byte) (r, s *big.Int) {
+	if len(messageHash) != 32 {
+		panic("unexpected message hash length for ECDSA signature")
+	} else if len(privateKey) != 32 {
+		panic("unexpected private key length for ECDSA signature")
+	}
+
 	d := new(big.Int).SetBytes(privateKey)
-	k := Q.Nonce(d, hash, sha256.New)
-	z := Q.Bits2int(hash)
+	k := Q.Nonce(d, messageHash, sha256.New)
+	z := Q.Bits2int(messageHash)
 
 	r = new(big.Int)
 	s = new(big.Int)
@@ -25,14 +31,22 @@ func SignECDSA(privateKey, hash []byte) (r, s *big.Int) {
 	return
 }
 
-// VerifyECDSA calculates if the given signature (r, s) is a valid ECDSA signature on hash from
+// VerifyECDSA calculates if the given signature (r, s) is a valid ECDSA signature on messageHash from
 // the given public key. Note that non-canonical ECDSA signatures (where s > N/2) are acceptable.
-func VerifyECDSA(hash []byte, r, s *big.Int, publicKey []byte) bool {
-	pubX, pubY, err := DeserializePoint(publicKey)
+func VerifyECDSA(pubBytes, messageHash []byte, r, s *big.Int) bool {
+	if len(messageHash) != 32 {
+		panic("unexpected message hash length for ECDSA verification")
+	}
+
+	if !IsValidCurveScalar(r) || !IsValidCurveScalar(s) {
+		return false
+	}
+
+	pubX, pubY, err := DeserializePoint(pubBytes)
 	if err != nil {
 		return false
 	}
 
-	z := Q.Bits2int(hash)
+	z := Q.Bits2int(messageHash)
 	return ekliptic.VerifyECDSA(z, r, s, pubX, pubY)
 }

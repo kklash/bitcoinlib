@@ -1,48 +1,56 @@
 package ecc
 
-import "testing"
+import (
+	"bytes"
+	"encoding/csv"
+	"encoding/hex"
+	"os"
+	"testing"
+)
 
-func TestIsEven(t *testing.T) {
-	if isEven(bigIntFromHex("1")) {
-		t.Errorf("1 should not be even")
+func TestSchnorr(t *testing.T) {
+	fh, err := os.Open("schnorr_fixtures.csv")
+	if err != nil {
+		t.Errorf("failed to open schnorr test fixtures file: %s", err)
+		return
 	}
-	if !isEven(bigIntFromHex("2")) {
-		t.Errorf("2 should be even")
+	defer fh.Close()
+	rows, err := csv.NewReader(fh).ReadAll()
+	if err != nil {
+		t.Errorf("failed to read CSV rows: %s", err)
+		return
 	}
-	if isEven(bigIntFromHex("3")) {
-		t.Errorf("3 should not be even")
-	}
-	if isEven(bigIntFromHex("ab3")) {
-		t.Errorf("0xab3 should not be even")
-	}
-}
+	rows = rows[1:]
 
-func TestLiftX(t *testing.T) {
-	test := func(xHex, yHex string) {
-		x := bigIntFromHex(xHex)
-		expectedY := bigIntFromHex(yHex)
+	for i, columns := range rows {
+		privateKey, err0 := hex.DecodeString(columns[1])
+		publicKey, err1 := hex.DecodeString(columns[2])
+		auxRand, err2 := hex.DecodeString(columns[3])
+		messageHash, err3 := hex.DecodeString(columns[4])
+		fixtureSig, err4 := hex.DecodeString(columns[5])
+		shouldValidate := columns[6] == "TRUE"
+		comment := columns[7]
 
-		actualY := liftX(x)
-		if !equal(actualY, expectedY) {
-			t.Errorf("Expected to expand x value %s to y value %s; got %x", xHex, yHex, actualY.Bytes())
+		for _, err := range []error{err0, err1, err2, err3, err4} {
+			if err != nil {
+				t.Errorf("failed to decode schnorr fixture index %d (%q): %s", i, comment, err)
+				continue
+			}
 		}
-	}
 
-	test(
-		"f722f5f1dfdb41951882ea19dcb520bcb5ad1f529da3b209eebfc1211674e39a",
-		"07de0c7c747fea6a923018ebec44fd2e0b6ef82921fff1ae5fc5b3669698739e",
-	)
-	test(
-		"BE5E1AFE40A8B4019213EC9D3B562456113197EB64BF43438170BD32DC29EAD2",
-		"7B4786F12502E181CE71D75085493FCA2E586CCEEAAAED6A0E3C96607DFB55C2",
-	)
-}
+		if len(privateKey) > 0 {
+			signature := SignSchnorr(privateKey, messageHash, auxRand)
 
-func BenchmarkLiftX(b *testing.B) {
-	n := bigIntFromHex("f722f5f1dfdb41951882ea19dcb520bcb5ad1f529da3b209eebfc1211674e39a")
+			if !bytes.Equal(signature, fixtureSig) {
+				t.Errorf("incorrect schnorr signature for %q\nWanted %x\nGot    %x", comment, fixtureSig, signature)
+				continue
+			}
+		}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		liftX(n)
+		valid := VerifySchnorr(publicKey, messageHash, fixtureSig)
+		if valid != shouldValidate {
+			t.Errorf("schnorr signature verification mismatch for %q; wanted %v, got %v", comment, shouldValidate, valid)
+			return
+		}
 	}
 }
