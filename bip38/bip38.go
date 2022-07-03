@@ -10,9 +10,8 @@ import (
 	"github.com/kklash/bitcoinlib/address"
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/bhash"
-	"github.com/kklash/bitcoinlib/bip32"
 	"github.com/kklash/bitcoinlib/common"
-	"github.com/kklash/ekliptic"
+	"github.com/kklash/bitcoinlib/ecc"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -28,8 +27,6 @@ var (
 	// encrypted properly, or if the password is incorrect.
 	ErrDecryptionFailed = errors.New("failed to decrypt bip38 key")
 )
-
-var secp = new(ekliptic.Curve)
 
 func prefixBytes(ecMultiply bool) []byte {
 	if ecMultiply {
@@ -53,7 +50,7 @@ func concatBytes(slices ...[]byte) []byte {
 }
 
 func deriveAddress(privateKey []byte, compressed bool) (string, error) {
-	publicKey := bip32.Neuter(privateKey, compressed)
+	publicKey := ecc.GetPublicKey(privateKey, compressed)
 
 	p2pkhAddress, err := address.MakeP2PKHFromPublicKey(publicKey)
 	if err != nil {

@@ -1,7 +1,7 @@
 package signer
 
 import (
-	"github.com/kklash/bitcoinlib/bip32"
+	"github.com/kklash/bitcoinlib/ecc"
 	"github.com/kklash/bitcoinlib/script"
 	"github.com/kklash/bitcoinlib/tx"
 )
@@ -11,7 +11,7 @@ func SignInputP2WPKH(txn *tx.Tx, nInput int, privateKey []byte, sigHashType uint
 		return ErrInputOutOfRange
 	}
 
-	publicKey := bip32.NeuterCompressed(privateKey)
+	publicKey := ecc.GetPublicKeyCompressed(privateKey)
 
 	// The prevOutScript is not the literal witness program of the prevout.
 	// Instead it is the script pub key implied by the witness program, hence

@@ -55,12 +55,15 @@ const (
 	// PublicKeyCompressedLength is the byte-size of a compressed public key.
 	PublicKeyCompressedLength int = 33
 	// PublicKeyUncompressedLength is the byte-size of an uncompressed public key.
-	PublicKeyUncompressedLength int = 64
+	PublicKeyUncompressedLength int = 65
+	// PublicKeySchnorrLength is the byte-size of a BIP340 schnorr public key.
+	PublicKeySchnorrLength int = 32
 
 	// PublicKeyCompressedEvenByte and PublicKeyCompressedOddByte indicate the bytes prefixing
 	// compressed public keys to indicate whether the Y coordinate of the public key point (X, Y) is even or odd.
 	PublicKeyCompressedEvenByte byte = 2
 	PublicKeyCompressedOddByte  byte = 3
+	PublicKeyUncompressedPrefix byte = 4
 )
 
 // AddressFormat is used to describe different standardized script pubkey formats.

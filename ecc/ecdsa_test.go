@@ -5,13 +5,9 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
-
-	"github.com/kklash/ekliptic"
 )
 
 func TestECDSA(t *testing.T) {
-	curve := new(ekliptic.Curve)
-
 	var fixtures []map[string]string
 
 	fixtureData, err := os.ReadFile("ecdsa_fixtures.json")
@@ -39,13 +35,13 @@ func TestECDSA(t *testing.T) {
 			)
 			return
 		}
-		pubX, pubY := curve.ScalarBaseMult(privateKey)
-		if !VerifyECDSA(hash, r, s, pubX, pubY) {
+		publicKey := GetPublicKeyCompressed(privateKey)
+		if !VerifyECDSA(hash, r, s, publicKey) {
 			t.Errorf("Expected signature to be verified as valid:\n(\n %X,\n %X\n)", r, s)
 		}
 
-		pubX, pubY = curve.ScalarBaseMult(seven.Bytes())
-		if VerifyECDSA(hash, r, s, pubX, pubY) {
+		publicKey = GetPublicKeyCompressed([]byte{7})
+		if VerifyECDSA(hash, r, s, publicKey) {
 			t.Errorf("Expected signature to be invalid with wrong pub key:\n(\n %X,\n %X\n)", r, s)
 		}
 	}

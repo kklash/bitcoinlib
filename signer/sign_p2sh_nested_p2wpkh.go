@@ -2,7 +2,7 @@ package signer
 
 import (
 	"github.com/kklash/bitcoinlib/bhash"
-	"github.com/kklash/bitcoinlib/bip32"
+	"github.com/kklash/bitcoinlib/ecc"
 	"github.com/kklash/bitcoinlib/script"
 	"github.com/kklash/bitcoinlib/tx"
 )
@@ -12,7 +12,7 @@ func SignInputP2SHNestedP2WPKH(txn *tx.Tx, nInput int, privateKey []byte, sigHas
 		return ErrInputOutOfRange
 	}
 
-	publicKey := bip32.NeuterCompressed(privateKey)
+	publicKey := ecc.GetPublicKeyCompressed(privateKey)
 	publicKeyHash := bhash.Hash160(publicKey)
 
 	// The prevOutScript is the script pub key implied by the witness program,

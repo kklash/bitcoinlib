@@ -12,5 +12,5 @@ import (
 func SharedSecret(priv, pubX, pubY *big.Int) []byte {
 	var sharedKey, yValueIsUnused big.Int
 	ekliptic.MultiplyAffine(pubX, pubY, priv, &sharedKey, &yValueIsUnused, nil)
-	return Serialize256(&sharedKey)
+	return sharedKey.FillBytes(make([]byte, 32))
 }

@@ -1,7 +1,7 @@
 package signer
 
 import (
-	"github.com/kklash/bitcoinlib/bip32"
+	"github.com/kklash/bitcoinlib/ecc"
 	"github.com/kklash/bitcoinlib/script"
 	"github.com/kklash/bitcoinlib/tx"
 )
@@ -11,7 +11,7 @@ func signInputP2PKH(txn *tx.Tx, nInput int, privateKey []byte, sigHashType uint3
 		return ErrInputOutOfRange
 	}
 
-	publicKey := bip32.Neuter(privateKey, compressed)
+	publicKey := ecc.GetPublicKey(privateKey, compressed)
 	prevOutScript, err := script.MakeP2PKHFromPublicKey(publicKey)
 	if err != nil {
 		return err

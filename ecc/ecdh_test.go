@@ -3,13 +3,9 @@ package ecc
 import (
 	"bytes"
 	"testing"
-
-	"github.com/kklash/ekliptic"
 )
 
 func TestSharedSecret(t *testing.T) {
-	curve := new(ekliptic.Curve)
-
 	fixtures := []struct {
 		key1 string
 		key2 string
@@ -35,8 +31,8 @@ func TestSharedSecret(t *testing.T) {
 	for _, fixture := range fixtures {
 		priv1, priv2 := pointAtHex(fixture.key1, fixture.key2)
 
-		pubX1, pubY1 := curve.ScalarBaseMult(priv1.Bytes())
-		pubX2, pubY2 := curve.ScalarBaseMult(priv2.Bytes())
+		pubX1, pubY1 := Curve.ScalarBaseMult(priv1.Bytes())
+		pubX2, pubY2 := Curve.ScalarBaseMult(priv2.Bytes())
 
 		secret1 := SharedSecret(priv1, pubX2, pubY2)
 		secret2 := SharedSecret(priv2, pubX1, pubY1)

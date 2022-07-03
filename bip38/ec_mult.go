@@ -6,9 +6,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"local/bitcoinlib/address"
 	"math/big"
 
+	"github.com/kklash/bitcoinlib/address"
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/bhash"
 	"github.com/kklash/bitcoinlib/common"
@@ -53,7 +53,7 @@ func GenerateIntermediateCodeWithLotSequence(random io.Reader, password string, 
 	ownerEntropy := concatBytes(ownerSalt, lotSequence)
 
 	passFactor := bhash.DoubleSha256(concatBytes(prefactor, ownerEntropy))
-	ppX, ppY := secp.ScalarBaseMult(passFactor[:])
+	ppX, ppY := ecc.Curve.ScalarBaseMult(passFactor[:])
 	passPoint := ecc.SerializePointCompressed(ppX, ppY)
 
 	intermediateCode := concatBytes(
@@ -76,7 +76,7 @@ func GenerateIntermediateCode(random io.Reader, password string) (string, error)
 		return "", err
 	}
 
-	ppX, ppY := secp.ScalarBaseMult(passFactor[:])
+	ppX, ppY := ecc.Curve.ScalarBaseMult(passFactor[:])
 	passPoint := ecc.SerializePointCompressed(ppX, ppY)
 
 	intermediateCode := concatBytes(
@@ -122,15 +122,13 @@ func EncryptIntermediateCode(random io.Reader, intermediateCodeStr string, compr
 		return "", fmt.Errorf("failed to generate seedb: %w", err)
 	}
 	factorb := bhash.DoubleSha256(seedb)
-	ppX, ppY := ecc.DeserializePoint(passPoint)
-	pubX, pubY := secp.ScalarMult(ppX, ppY, factorb[:])
-
-	var publicKey []byte
-	if compressed {
-		publicKey = ecc.SerializePointCompressed(pubX, pubY)
-	} else {
-		publicKey = ecc.SerializePoint(pubX, pubY)
+	ppX, ppY, err := ecc.DeserializePoint(passPoint)
+	if err != nil {
+		return "", err
 	}
+
+	pubX, pubY := ecc.Curve.ScalarMult(ppX, ppY, factorb[:])
+	publicKey := ecc.SerializePoint(pubX, pubY, compressed)
 
 	p2pkhAddress, err := address.MakeP2PKHFromPublicKey(publicKey)
 	if err != nil {
@@ -158,10 +156,10 @@ func EncryptIntermediateCode(random io.Reader, intermediateCodeStr string, compr
 	encryptedHalf1 := make([]byte, 16)
 	encryptedHalf2 := make([]byte, 16)
 
-	block.Encrypt(encryptedHalf1, xorBytes(seedb[:16], dk1[:16]))
+	block.Encrypt(encryptedHalf1, common.XorBytes(seedb[:16], dk1[:16]))
 
 	v := concatBytes(encryptedHalf1[8:], seedb[16:])
-	block.Encrypt(encryptedHalf2, xorBytes(v, dk1[16:]))
+	block.Encrypt(encryptedHalf2, common.XorBytes(v, dk1[16:]))
 
 	payloadBuf.Write(encryptedHalf1[:8])
 	payloadBuf.Write(encryptedHalf2)
@@ -194,7 +192,7 @@ func decryptECMult(
 		passFactor, _ = scrypt.Key([]byte(password), ownerEntropy, 16384, 8, 8, 32)
 	}
 
-	ppX, ppY := secp.ScalarBaseMult(passFactor)
+	ppX, ppY := ecc.Curve.ScalarBaseMult(passFactor)
 	passPoint := ecc.SerializePointCompressed(ppX, ppY)
 
 	scryptedKey, err := scrypt.Key(passPoint, concatBytes(addressHash, ownerEntropy), 1024, 1, 1, 64)
@@ -228,7 +226,7 @@ func decryptECMult(
 	fb := new(big.Int).SetBytes(factorb[:])
 	pf := new(big.Int).SetBytes(passFactor)
 	fb.Mul(fb, pf)
-	fb.Mod(fb, secp.Params().N)
+	fb.Mod(fb, ecc.Curve.Params().N)
 	privateKey = fb.FillBytes(make([]byte, 32))
 
 	return privateKey, compressed, nil

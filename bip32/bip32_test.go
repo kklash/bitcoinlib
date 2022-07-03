@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/kklash/bitcoinlib/constants"
+	"github.com/kklash/bitcoinlib/ecc"
 )
 
 type NodeFixture struct {
@@ -57,7 +58,7 @@ func (nf *NodeFixture) Test(t *testing.T) {
 				return
 			}
 		} else {
-			childPublicKey = NeuterCompressed(childPrivateKey)
+			childPublicKey = ecc.GetPublicKeyCompressed(childPrivateKey)
 		}
 
 		childXpub := SerializePublic(childPublicKey, childChainCode, fingerprint, depth+1, index, publicVersion)
@@ -95,7 +96,7 @@ func (mf *MasterFixture) Test(t *testing.T) {
 		return
 	}
 
-	masterPublicKey := NeuterCompressed(masterKey)
+	masterPublicKey := ecc.GetPublicKeyCompressed(masterKey)
 
 	xpub := SerializePublic(masterPublicKey, chainCode, nil, 0, 0, constants.BitcoinNetwork.ExtendedPublic)
 	if xpub != mf.node.xpub {

@@ -2,10 +2,13 @@ package bip32
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/constants"
+	"github.com/kklash/bitcoinlib/ecc"
 )
 
 // ErrInvalidExtendedKey is returned by Deserialize if it
@@ -47,8 +50,7 @@ func SerializePrivate(privateKey, chainCode, parentFingerprint []byte, depth byt
 // Deserialize parses a base58-check encoded extended key (public or private) and returns
 // the key, chain code, parent fingerprint, depth from the master key, child index, version
 // number prefix, and any error encountered during deserialization. Returns ErrInvalidExtendedKey
-// if the key is not of a valid format. Returns ErrInvalidPublicKey if decoding a public key
-// and the public key is not on the secp256k1 curve.
+// if the key is not valid.
 func Deserialize(bs58Key string) (key, chainCode, parentFingerprint []byte, depth byte, index, version uint32, err error) {
 	var serialized []byte
 	serialized, err = base58check.Decode(bs58Key)
@@ -62,17 +64,18 @@ func Deserialize(bs58Key string) (key, chainCode, parentFingerprint []byte, dept
 		return
 	}
 
-	version = parse32(serialized[:4])
+	version = binary.BigEndian.Uint32(serialized[:4])
 	depth = serialized[4]
 	parentFingerprint = serialized[5:9]
-	index = parse32(serialized[9:13])
+	index = binary.BigEndian.Uint32(serialized[9:13])
 	chainCode = serialized[13:45]
 	key = serialized[45:]
 	if key[0] == 0 {
 		// private key, truncate to 32 bytes
 		key = key[1:]
 	} else {
-		if err = ValidatePublicKeyBytes(key); err != nil {
+		if _, _, err = ecc.DeserializePoint(key); err != nil {
+			err = fmt.Errorf("%w: %s", ErrInvalidExtendedKey, err)
 			return
 		}
 	}

@@ -1,3 +1,4 @@
-github.com/kklash/ekliptic v0.0.0-20220522002045-f40b8b720115 h1:mbLY42WulgFnUZ4HFKI8DepY5/6yDau6HZNiB1YfYno=
+github.com/kklash/ekliptic v0.0.0-20220703154210-f14fde484799 h1:eK7/KsNkMUHeihfef3LH5t3jfPF0Mg17s3ReVd73uhE=
+github.com/kklash/ekliptic v0.0.0-20220703154210-f14fde484799/go.mod h1:9JLU+jKoWBFziSj0eWEROgpv2yXQmlw6c6VTEv6KIfg=
 golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 h1:SLP7Q4Di66FONjDJbCYrCRrh97focO6sLogHO7/g8F0=
 golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=

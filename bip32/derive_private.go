@@ -1,6 +1,8 @@
 package bip32
 
 import (
+	"math/big"
+
 	"github.com/kklash/bitcoinlib/constants"
 	"github.com/kklash/bitcoinlib/ecc"
 )
@@ -19,11 +21,11 @@ func derivePrivateChild(parentPrivateKey, chainCode []byte, childIndex uint32) (
 	l := hmacSha512(chainCode, data)
 	lLeft, lRight := l[:32], l[32:]
 
-	childKeyInt := parse256(lLeft)
-	childKeyInt.Add(childKeyInt, parse256(parentPrivateKey))
+	childKeyInt := new(big.Int).SetBytes(lLeft)
+	childKeyInt.Add(childKeyInt, new(big.Int).SetBytes(parentPrivateKey))
 	childKeyInt.Mod(childKeyInt, curve.Params().N)
 
-	childPrivateKey = ecc.Serialize256(childKeyInt)
+	childPrivateKey = childKeyInt.FillBytes(make([]byte, 32))
 	childChainCode = lRight
 	return
 }

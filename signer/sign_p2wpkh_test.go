@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/kklash/bitcoinlib/bip32"
 	"github.com/kklash/bitcoinlib/common"
 	"github.com/kklash/bitcoinlib/constants"
+	"github.com/kklash/bitcoinlib/ecc"
 	"github.com/kklash/bitcoinlib/satutil"
 	"github.com/kklash/bitcoinlib/script"
 	"github.com/kklash/bitcoinlib/tx"
@@ -29,7 +29,7 @@ func TestSignP2WPKHTestnet(t *testing.T) {
 	}()
 
 	privateKey := mustHex("52193c7c8a290a1b93fb140bf3f011ccfc39db77234d9aa7fde059cf011005e9")
-	publicKey := bip32.NeuterCompressed(privateKey)
+	publicKey := ecc.GetPublicKeyCompressed(privateKey)
 
 	var prevOutHash [32]byte
 	copy(prevOutHash[:], common.ReverseBytes(mustHex("49e14c722b41b48a1c23d7d306c169cead149475ed21c614a05dd9136e071ab0")))

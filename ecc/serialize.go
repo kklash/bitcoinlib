@@ -1,6 +1,8 @@
 package ecc
 
 import (
+	"crypto/elliptic"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -8,58 +10,72 @@ import (
 	"github.com/kklash/ekliptic"
 )
 
-func Serialize256(v *big.Int) []byte {
-	buf := make([]byte, 32)
-	v.FillBytes(buf)
-	return buf
-}
+// ErrPointNotOnCurve is returned upon deserializing an invalid point
+// (one which does not satisfy the secp256k1 curve equation).
+var ErrPointNotOnCurve = errors.New("failed to deserialize point not on secp256k1 curve")
 
-func SerializePoint(x, y *big.Int) []byte {
-	buf := make([]byte, 64)
-	x.FillBytes(buf[:32])
-	y.FillBytes(buf[32:])
-	return buf
-}
-
-func SerializePointCompressed(x, y *big.Int) []byte {
-	var prefix byte
-	if isEven(y) {
-		prefix = constants.PublicKeyCompressedEvenByte // Even number
-	} else {
-		prefix = constants.PublicKeyCompressedOddByte // Odd number
-	}
-
-	buf := make([]byte, 33)
-	buf[0] = prefix
-	x.FillBytes(buf[1:])
-	return buf
-}
-
-// TODO return an error instead of panic
-func DeserializePoint(serialized []byte) (x, y *big.Int) {
+// DeserializePoint decodes the given serialized curve point, which should either be
+// length 65 (uncompressed), 33 (compressed), or 32 (BIP-340 schnorr).
+// Returns ErrPointNotOnCurve if the resulting point is not on the secp256k1 curve.
+func DeserializePoint(serialized []byte) (x, y *big.Int, err error) {
 	switch len(serialized) {
 	case constants.PublicKeyUncompressedLength:
-		x = new(big.Int).SetBytes(serialized[:32])
-		y = new(big.Int).SetBytes(serialized[32:])
+		if serialized[0] != constants.PublicKeyUncompressedPrefix {
+			return nil, nil, fmt.Errorf("unexpected point prefix byte 0x%x", serialized[0])
+		}
+		x = new(big.Int).SetBytes(serialized[1:33])
+		y = new(big.Int).SetBytes(serialized[33:])
+
+		evenY, oddY := ekliptic.Weierstrass(x)
+		if evenY == nil || oddY == nil || !(equal(y, evenY) || equal(y, oddY)) {
+			return nil, nil, ErrPointNotOnCurve
+		}
 
 	case constants.PublicKeyCompressedLength:
 		x = new(big.Int).SetBytes(serialized[1:])
 		evenY, oddY := ekliptic.Weierstrass(x)
-		if serialized[0]%2 == 0 {
-			y = evenY
-		} else {
-			y = oddY
+		if evenY == nil || oddY == nil {
+			return nil, nil, ErrPointNotOnCurve
 		}
 
-	// TODO 32-byte x-only keys from bip340
+		switch serialized[0] {
+		case constants.PublicKeyCompressedEvenByte:
+			y = evenY
+		case constants.PublicKeyCompressedOddByte:
+			y = oddY
+		default:
+			return nil, nil, fmt.Errorf("unexpected point prefix byte 0x%x", serialized[0])
+		}
+
+	case constants.PublicKeySchnorrLength:
+		x = new(big.Int).SetBytes(serialized)
+		y, _ = ekliptic.Weierstrass(x)
+		if y == nil {
+			return nil, nil, ErrPointNotOnCurve
+		}
 
 	default:
-		panic(fmt.Sprintf("attempted to deserialize unexpected byte slice of length %d", len(serialized)))
-	}
-
-	if !ekliptic.IsOnCurveAffine(x, y) {
-		panic("deserialized public key not on the secp256k1 curve")
+		err = fmt.Errorf("attempted to deserialize unexpected byte slice of length %d as curve point", len(serialized))
 	}
 
 	return
+}
+
+// SerializePointUncompressed serializes the given curve point in 65-byte uncompressed format.
+func SerializePointUncompressed(x, y *big.Int) []byte {
+	return elliptic.Marshal(Curve, x, y)
+}
+
+// SerializePointCompressed serializes the given curve point in 33-byte compressed format.
+func SerializePointCompressed(x, y *big.Int) []byte {
+	return elliptic.MarshalCompressed(Curve, x, y)
+}
+
+// SerializePoint serializes the given curve point in compressed format if compressed is true,
+// otherwise it returns the uncompressed serialization.
+func SerializePoint(x, y *big.Int, compressed bool) []byte {
+	if compressed {
+		return SerializePointCompressed(x, y)
+	}
+	return SerializePointUncompressed(x, y)
 }
