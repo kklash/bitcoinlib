@@ -11,6 +11,7 @@ import (
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/bhash"
 	"github.com/kklash/bitcoinlib/bip32"
+	"github.com/kklash/bitcoinlib/common"
 	"github.com/kklash/ekliptic"
 	"golang.org/x/crypto/scrypt"
 )
@@ -36,20 +37,6 @@ func prefixBytes(ecMultiply bool) []byte {
 	}
 
 	return []byte{0x01, 0x42}
-}
-
-func xorBytes(b1, b2 []byte) []byte {
-	size := len(b1)
-	if len(b2) != size {
-		panic("attempting to xor byte slices of different lengths")
-	}
-
-	output := make([]byte, size)
-	for i := 0; i < size; i++ {
-		output[i] = b1[i] ^ b2[i]
-	}
-
-	return output
 }
 
 func concatBytes(slices ...[]byte) []byte {
@@ -133,8 +120,8 @@ func Encrypt(privateKey []byte, password string, compressed bool) (string, error
 		encryptedHalf1 [16]byte
 		encryptedHalf2 [16]byte
 	)
-	block.Encrypt(encryptedHalf1[:], xorBytes(privateKey[:16], dk1[:16]))
-	block.Encrypt(encryptedHalf2[:], xorBytes(privateKey[16:], dk1[16:]))
+	block.Encrypt(encryptedHalf1[:], common.XorBytes(privateKey[:16], dk1[:16]))
+	block.Encrypt(encryptedHalf2[:], common.XorBytes(privateKey[16:], dk1[16:]))
 
 	payloadBuf.Write(encryptedHalf1[:])
 	payloadBuf.Write(encryptedHalf2[:])
@@ -222,8 +209,8 @@ func decrypt(
 
 	privateKey = make([]byte, 32)
 
-	copy(privateKey[:16], xorBytes(decryptedPayload[:16], dk1[:16]))
-	copy(privateKey[16:], xorBytes(decryptedPayload[16:], dk1[16:]))
+	copy(privateKey[:16], common.XorBytes(decryptedPayload[:16], dk1[:16]))
+	copy(privateKey[16:], common.XorBytes(decryptedPayload[16:], dk1[16:]))
 
 	return privateKey, compressed, nil
 }

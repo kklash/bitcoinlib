@@ -11,6 +11,7 @@ import (
 
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/bhash"
+	"github.com/kklash/bitcoinlib/common"
 	"github.com/kklash/bitcoinlib/ecc"
 	"golang.org/x/crypto/scrypt"
 )
@@ -216,12 +217,12 @@ func decryptECMult(
 
 	decryptedHalf2 := make([]byte, 16)
 	block.Decrypt(decryptedHalf2, encryptedHalf2)
-	copy(encryptedHalf1[8:], xorBytes(decryptedHalf2[:8], dk1[16:24]))
-	copy(seedb[16:], xorBytes(decryptedHalf2[8:], dk1[24:]))
+	copy(encryptedHalf1[8:], common.XorBytes(decryptedHalf2[:8], dk1[16:24]))
+	copy(seedb[16:], common.XorBytes(decryptedHalf2[8:], dk1[24:]))
 
 	decryptedHalf1 := make([]byte, 16)
 	block.Decrypt(decryptedHalf1, encryptedHalf1)
-	copy(seedb[:16], xorBytes(decryptedHalf1, dk1[:16]))
+	copy(seedb[:16], common.XorBytes(decryptedHalf1, dk1[:16]))
 
 	factorb := bhash.DoubleSha256(seedb)
 	fb := new(big.Int).SetBytes(factorb[:])
