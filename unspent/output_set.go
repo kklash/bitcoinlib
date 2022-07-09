@@ -108,7 +108,9 @@ func (unspentOutputs *OutputSet) AddOutput(output *Output) {
 // RemoveByOutpoint removes an unspent output from the OutputSet
 // as specified by the given transaction outpoint.
 func (unspentOutputs *OutputSet) RemoveByOutpoint(outpoint *tx.PrevOut) {
-	delete(unspentOutputs.byOutpoint, *outpoint)
+	if unspentOutputs.byOutpoint != nil {
+		delete(unspentOutputs.byOutpoint, *outpoint)
+	}
 }
 
 // UpdateFromBlock mutates the OutputSet by parsing the inputs and outputs of transactions in
