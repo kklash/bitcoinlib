@@ -113,6 +113,33 @@ func (unspentOutputs *OutputSet) RemoveByOutpoint(outpoint *tx.PrevOut) {
 	}
 }
 
+// RemoveByHash removes an unspent output from the OutputSet matching the
+// given TX hash and output index.
+func (unspentOutputs *OutputSet) RemoveByHash(hash [32]byte, index uint32) {
+	if unspentOutputs.byOutpoint != nil {
+		outpoint := &tx.PrevOut{Hash: hash, Index: index}
+		unspentOutputs.RemoveByOutpoint(outpoint)
+	}
+}
+
+// RemoveByHash removes an unspent output from the OutputSet matching the
+// given TXID and output index.
+func (unspentOutputs *OutputSet) RemoveByTxid(txid string, index uint32) {
+	if unspentOutputs.byOutpoint != nil {
+		txidBytes, err := hex.DecodeString(txid)
+		if err != nil {
+			return
+		}
+
+		var hash [32]byte
+		copy(hash[:], txidBytes)
+		common.ReverseBytesInPlace(hash[:])
+
+		outpoint := &tx.PrevOut{Hash: hash, Index: index}
+		unspentOutputs.RemoveByOutpoint(outpoint)
+	}
+}
+
 // UpdateFromBlock mutates the OutputSet by parsing the inputs and outputs of transactions in
 // the given block. If unspent outputs in the OutputSet are spent by transactions in the block,
 // those outputs are removed from the OutputSet. If new outputs are created which lock funds using
