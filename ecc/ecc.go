@@ -2,6 +2,7 @@ package ecc
 
 import (
 	"crypto/elliptic"
+	"io"
 
 	"github.com/kklash/bitcoinlib/constants"
 	"github.com/kklash/ekliptic"
@@ -9,6 +10,17 @@ import (
 
 // Curve is the secp256k1 curve modeled as an elliptic.Curve interface.
 var Curve elliptic.Curve = new(ekliptic.Curve)
+
+// NewPrivateKey generates a private key by reading data from a random source.
+// This source should come from a secure high-entropy RNG like crypto/rand.Reader.
+func NewPrivateKey(random io.Reader) ([]byte, error) {
+	d, err := ekliptic.NewPrivateKey(random)
+	if err != nil {
+		return nil, err
+	}
+	privateKey := d.FillBytes(make([]byte, 32))
+	return privateKey, nil
+}
 
 // GetPublicKeyCompressed returns the 33-byte compressed public key of a given private key.
 func GetPublicKeyCompressed(privateKey []byte) []byte {
