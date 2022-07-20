@@ -38,7 +38,7 @@ func VerifyECDSA(pubBytes, messageHash []byte, r, s *big.Int) bool {
 		panic("unexpected message hash length for ECDSA verification")
 	}
 
-	if !IsValidCurveScalar(r) || !IsValidCurveScalar(s) {
+	if !ekliptic.IsValidScalar(r) || !ekliptic.IsValidScalar(s) {
 		return false
 	}
 

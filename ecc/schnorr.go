@@ -27,7 +27,7 @@ func SignSchnorr(privateKey, messageHash, auxRand []byte) []byte {
 	}
 
 	d := new(big.Int).SetBytes(privateKey)
-	if !IsValidCurveScalar(d) {
+	if !ekliptic.IsValidScalar(d) {
 		panic("private key is not in range [1, N)")
 	}
 

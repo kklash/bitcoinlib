@@ -2,7 +2,6 @@ package ecc
 
 import (
 	"crypto/elliptic"
-	"math/big"
 
 	"github.com/kklash/bitcoinlib/constants"
 	"github.com/kklash/ekliptic"
@@ -66,10 +65,4 @@ func IsCompressedPublicKey(key []byte) bool {
 		len(key) == constants.PublicKeyCompressedLength &&
 		(key[0] == constants.PublicKeyCompressedEvenByte ||
 			key[0] == constants.PublicKeyCompressedOddByte)
-}
-
-// IsValidCurveScalar returns true if the given integer is a valid secp256k1 private key - i.e. a
-// number in the range [0, N) where N is the secp256k1 curve order.
-func IsValidCurveScalar(d *big.Int) bool {
-	return d.Cmp(zero) == 1 && d.Cmp(ekliptic.Secp256k1_CurveOrder) == -1
 }
