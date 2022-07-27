@@ -64,6 +64,9 @@ const (
 	PublicKeyCompressedEvenByte byte = 2
 	PublicKeyCompressedOddByte  byte = 3
 	PublicKeyUncompressedPrefix byte = 4
+
+	// TaprootLeafVersionTapscript is the version number used in Taproot Tapscript leaf nodes.
+	TaprootLeafVersionTapscript = 0xc0
 )
 
 // AddressFormat is used to describe different standardized script pubkey formats.

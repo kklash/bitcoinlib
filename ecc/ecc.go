@@ -2,7 +2,9 @@ package ecc
 
 import (
 	"crypto/elliptic"
+	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/kklash/bitcoinlib/constants"
 	"github.com/kklash/ekliptic"
@@ -77,4 +79,53 @@ func IsCompressedPublicKey(key []byte) bool {
 		len(key) == constants.PublicKeyCompressedLength &&
 		(key[0] == constants.PublicKeyCompressedEvenByte ||
 			key[0] == constants.PublicKeyCompressedOddByte)
+}
+
+// SumPrivateKeys combines any number of private keys together into one key which
+// can form an aggregate signature.
+//
+// Returns an error if any of the keys are not valid secp256k1 scalar values.
+func SumPrivateKeys(privateKeys ...[]byte) ([]byte, error) {
+	sum := new(big.Int)
+	keyInt := new(big.Int)
+	for _, key := range privateKeys {
+		keyInt.SetBytes(key)
+		if !ekliptic.IsValidScalar(keyInt) {
+			return nil, fmt.Errorf("SumPrivateKeys used on invalid private key")
+		}
+		sum.Add(sum, keyInt)
+	}
+	sumBytes := sum.FillBytes(make([]byte, 32))
+	return sumBytes, nil
+}
+
+// SumPublicKeys combines any number of schnorr public keys together into one key which
+// can be used to verify signatures aggregated from the component keys.
+//
+// Returns an error if any of the keys are not schnorr public keys.
+func SumPublicKeys(publicKeys ...[]byte) ([]byte, error) {
+	sumX := new(big.Int)
+	sumY := new(big.Int)
+	for _, key := range publicKeys {
+		if len(key) != constants.PublicKeySchnorrLength {
+			return nil, fmt.Errorf(
+				"CombinePublicKeys only works with %d-byte schnorr public keys",
+				constants.PublicKeySchnorrLength,
+			)
+		}
+
+		x, y, err := DeserializePoint(key)
+		if err != nil {
+			return nil, err
+		}
+
+		ekliptic.AddAffine(
+			sumX, sumY,
+			x, y,
+			sumX, sumY,
+		)
+	}
+
+	sumPub := sumX.FillBytes(make([]byte, 32))
+	return sumPub, nil
 }
