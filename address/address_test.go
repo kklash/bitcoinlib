@@ -15,24 +15,10 @@ func hex2bytes(h string) []byte {
 	return data
 }
 
-func hexTo20ByteArray(h string) [20]byte {
-	data := hex2bytes(h)
-	arr := [20]byte{}
-	copy(arr[:], data)
-	return arr
-}
-
-func hexTo32ByteArray(h string) [32]byte {
-	data := hex2bytes(h)
-	arr := [32]byte{}
-	copy(arr[:], data)
-	return arr
-}
-
 func TestMakeAndDecode(t *testing.T) {
 	type Fixture struct {
 		input        []byte
-		hash         interface{} // [20]byte or [32]byte
+		hash         []byte
 		format       constants.AddressFormat
 		network      constants.Network
 		address      string
@@ -42,7 +28,7 @@ func TestMakeAndDecode(t *testing.T) {
 	fixtures := []Fixture{
 		Fixture{
 			input:        hex2bytes("030c5002a402c02c6662f7339f97150be7dfd8e266d8cf3374f0c823bc9c97ce53"),
-			hash:         hexTo20ByteArray("7fd3519d11e8e4cfcaf55e3655af32161b24e023"),
+			hash:         hex2bytes("7fd3519d11e8e4cfcaf55e3655af32161b24e023"),
 			format:       constants.FormatP2PKH,
 			network:      constants.BitcoinNetwork,
 			address:      "1Cesy3vCXX2cf5TP3RN9dpJ7No8UXQJweg",
@@ -50,7 +36,7 @@ func TestMakeAndDecode(t *testing.T) {
 		},
 		Fixture{
 			input:        hex2bytes("0350123ebc957d3c117bf1d8119cf7432f15e86ebdbe027791a637e74e58259727"),
-			hash:         hexTo20ByteArray("ce912eee3905de1ac5db35e891035e9f310c0e2a"),
+			hash:         hex2bytes("ce912eee3905de1ac5db35e891035e9f310c0e2a"),
 			format:       constants.FormatP2WPKH,
 			network:      constants.BitcoinNetwork,
 			address:      "bc1qe6gjam3eqh0p43wmxh5fzq67nucscr32q35lpe",
@@ -58,7 +44,7 @@ func TestMakeAndDecode(t *testing.T) {
 		},
 		Fixture{
 			input:        hex2bytes("0014262b2d2c13538ef75927cf7fd22d41103be19796"),
-			hash:         hexTo20ByteArray("83197cecd6f3277be9ce00aea61b7b1f0ac34b87"),
+			hash:         hex2bytes("83197cecd6f3277be9ce00aea61b7b1f0ac34b87"),
 			format:       constants.FormatP2SH,
 			network:      constants.BitcoinNetwork,
 			address:      "3DeCycLUMgbqs2MvJfdToCxp4tgREUa4iC",
@@ -66,7 +52,7 @@ func TestMakeAndDecode(t *testing.T) {
 		},
 		Fixture{
 			input:        hex2bytes("02217346dea363f34864a58fca85a9295ff6142622a0a78a5078b8b0dd9ffccf00"),
-			hash:         hexTo20ByteArray("e79a6783b1546a18f7ef12c949d751b189cbf0e3"),
+			hash:         hex2bytes("e79a6783b1546a18f7ef12c949d751b189cbf0e3"),
 			format:       constants.FormatP2PKH,
 			network:      constants.ZcashNetwork,
 			address:      "t1ezD4rJqDBfnEQVMWqws9Ddi5f3g9jQiAA",
@@ -74,7 +60,7 @@ func TestMakeAndDecode(t *testing.T) {
 		},
 		Fixture{
 			input:        hex2bytes("522103bb79cf5d6be36f6d598149a53d09c6fd1c8170241e3d63e5306b5b020ddb447a21022d1d6a538147bebcf0602defa6dd6373ee2e3d33be31f36ea7648ae20b096b7652ae"),
-			hash:         hexTo32ByteArray("712c0646422a6e2c5bbb4f474f5c690d281167d627e855aeac29a33da1839191"),
+			hash:         hex2bytes("712c0646422a6e2c5bbb4f474f5c690d281167d627e855aeac29a33da1839191"),
 			format:       constants.FormatP2WSH,
 			network:      constants.BitcoinNetwork,
 			address:      "bc1qwykqv3jz9fhzckamfar57hrfp55pze7kyl59tt4v9x3nmgvrjxgs5xwjnw",
@@ -164,34 +150,34 @@ func TestDecodeBase58Address(t *testing.T) {
 	type Fixture struct {
 		address string
 		version uint16
-		payload [20]byte
+		payload []byte
 	}
 
 	fixtures := []Fixture{
 		Fixture{
 			address: "1Ckdc8grRFTh7hAtzcxMjAWMu6Kgf3Hb9W",
 			version: 0,
-			payload: hexTo20ByteArray("80e9d3b01aa679689c05a3bf96665e78b2db80c5"),
+			payload: hex2bytes("80e9d3b01aa679689c05a3bf96665e78b2db80c5"),
 		},
 		Fixture{
 			address: "1J1j4XWyUytNDydKWLjEoBkhCsoe28ePUj",
 			version: 0,
-			payload: hexTo20ByteArray("ba9d3fb874c44ee404103a70600595c20af2cb9d"),
+			payload: hex2bytes("ba9d3fb874c44ee404103a70600595c20af2cb9d"),
 		},
 		Fixture{
 			address: "LaMmecUkVhooihC7gv8HagMUFuFR6k77hL",
 			version: 0x30,
-			payload: hexTo20ByteArray("a6045ac03781a1a083755586a3236ac18b096441"),
+			payload: hex2bytes("a6045ac03781a1a083755586a3236ac18b096441"),
 		},
 		Fixture{
 			address: "MKYx4DReDgpExkZuRZkyMi1eM2qv81FQio",
 			version: 0x32,
-			payload: hexTo20ByteArray("7fcf06ab7493a3900846c051218ff7d828e06f6a"),
+			payload: hex2bytes("7fcf06ab7493a3900846c051218ff7d828e06f6a"),
 		},
 		Fixture{
 			address: "t1Po9mYToY4Agp2VvQS255XeazUbLQcMWKt",
 			version: 0x1cb8,
-			payload: hexTo20ByteArray("40f9304afeba97d9045afc43640334429ea6d51b"),
+			payload: hex2bytes("40f9304afeba97d9045afc43640334429ea6d51b"),
 		},
 	}
 
@@ -207,11 +193,12 @@ func TestDecodeBase58Address(t *testing.T) {
 			continue
 		}
 
-		expectedHash := hex.EncodeToString(fixture.payload[:])
+		expectedHash := hex.EncodeToString(fixture.payload)
 		actualHash := hex.EncodeToString(hash[:])
 
 		if expectedHash != actualHash {
 			t.Errorf("decoded address payload does not match\nwanted %s\ngot %s", expectedHash, actualHash)
+			continue
 		}
 	}
 }

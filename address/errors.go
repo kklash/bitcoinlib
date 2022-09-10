@@ -9,8 +9,8 @@ var (
 	// to an address-making function.
 	ErrInvalidPublicKeyLength = errors.New("invalid public key length")
 
-	// ErrInvalidHashType indicates an incorrect data type was passed to MakeFromHash.
-	ErrInvalidHashType = errors.New("expected [20]byte or [32]byte when making address from hash")
+	// ErrInvalidHash indicates an incorrect length hash was passed to MakeFromHash.
+	ErrInvalidHash = errors.New("incorrect hash length passed when making address from hash")
 
 	// ErrInvalidAddressFormat indicates that an invalid address format string
 	// was passed when creating a new address.

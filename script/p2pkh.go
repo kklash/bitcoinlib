@@ -25,8 +25,8 @@ func MakeP2PKHFromHash(hash [20]byte) []byte {
 // script using the given public key. Returns ErrInvalidPublicKeyLength
 // if the public key provided is not valid.
 func MakeP2PKHFromPublicKey(publicKey []byte) ([]byte, error) {
-	if len(publicKey) != PublicKeyCompressedLength &&
-		len(publicKey) != PublicKeyUncompressedLength {
+	if len(publicKey) != constants.PublicKeyCompressedLength &&
+		len(publicKey) != constants.PublicKeyUncompressedLength {
 		return nil, ErrInvalidPublicKeyLength
 	}
 
