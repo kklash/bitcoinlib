@@ -93,7 +93,7 @@ func (mn MastBranch) Hash() (hashed [32]byte) {
 // script is used in the taproot script commitment. This means the only way
 // to redeem the output would be to provide a signature by internalPublicKey.
 func MakeP2TR(internalPublicKey []byte, scriptTree Hasher) ([]byte, error) {
-	h := []byte{}
+	var h []byte
 	if scriptTree != nil {
 		scriptTreeHash := scriptTree.Hash()
 		h = scriptTreeHash[:]
