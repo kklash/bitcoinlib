@@ -31,9 +31,7 @@ func SignSchnorr(privateKey, messageHash, auxRand []byte) []byte {
 		panic("private key is not in range [1, N)")
 	}
 
-	pubX := new(big.Int)
-	pubY := new(big.Int)
-	ekliptic.MultiplyBasePoint(d, pubX, pubY)
+	pubX, pubY := ekliptic.MultiplyBasePoint(d)
 
 	if !isEven(pubY) {
 		d.Sub(ekliptic.Secp256k1_CurveOrder, d)
@@ -54,9 +52,7 @@ func SignSchnorr(privateKey, messageHash, auxRand []byte) []byte {
 		panic("schnorr signature produced unexpected k of zero")
 	}
 
-	rX := new(big.Int)
-	rY := new(big.Int)
-	ekliptic.MultiplyBasePoint(k, rX, rY)
+	rX, rY := ekliptic.MultiplyBasePoint(k)
 
 	if !isEven(rY) {
 		k.Sub(ekliptic.Secp256k1_CurveOrder, k)
@@ -119,18 +115,11 @@ func VerifySchnorr(pubBytes, messageHash, sig []byte) bool {
 	)
 	e.Mod(e, ekliptic.Secp256k1_CurveOrder)
 
-	sgx := new(big.Int)
-	sgy := new(big.Int)
-	ekliptic.MultiplyBasePoint(s, sgx, sgy)
+	sgx, sgy := ekliptic.MultiplyBasePoint(s)
 
-	epx := new(big.Int)
-	epy := new(big.Int)
-	ekliptic.MultiplyAffine(pubX, pubY, e, epx, epy, nil)
-	ekliptic.Negate(epy)
+	epx, epy := ekliptic.MultiplyAffine(pubX, pubY, e, nil)
 
-	Rx := new(big.Int)
-	Ry := new(big.Int)
-	ekliptic.AddAffine(sgx, sgy, epx, epy, Rx, Ry)
+	Rx, Ry := ekliptic.SubAffine(sgx, sgy, epx, epy)
 
 	return !equal(Rx, zero) && !equal(Ry, zero) && isEven(Ry) && equal(Rx, r)
 }

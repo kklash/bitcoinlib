@@ -1,4 +1,4 @@
-github.com/kklash/ekliptic v0.0.0-20220720024538-d274733c504f h1:UFN+uDlVWqUIV7AfSpMwY9JbRIoEGJg6kP3eNLYUBu4=
-github.com/kklash/ekliptic v0.0.0-20220720024538-d274733c504f/go.mod h1:9JLU+jKoWBFziSj0eWEROgpv2yXQmlw6c6VTEv6KIfg=
+github.com/kklash/ekliptic v0.0.0-20220910175110-8d1e695fc7a8 h1:7gOwzpzWUo3NYLXpXuWOiQieeX119zafU0v5oy7Odf4=
+github.com/kklash/ekliptic v0.0.0-20220910175110-8d1e695fc7a8/go.mod h1:9JLU+jKoWBFziSj0eWEROgpv2yXQmlw6c6VTEv6KIfg=
 github.com/kklash/rfc6979 v1.1.0 h1:cUN1e3AttwEqWMf7PAjO5HzCrd10JN8g/+tJ6VxANqA=
 github.com/kklash/rfc6979 v1.1.0/go.mod h1:9XqjwT3bz9RhHKtGHkQ4ESZPzNksGVmxbcA6tcQVdEU=

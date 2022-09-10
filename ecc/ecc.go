@@ -16,7 +16,7 @@ var Curve elliptic.Curve = new(ekliptic.Curve)
 // NewPrivateKey generates a private key by reading data from a random source.
 // This source should come from a secure high-entropy RNG like crypto/rand.Reader.
 func NewPrivateKey(random io.Reader) ([]byte, error) {
-	d, err := ekliptic.NewPrivateKey(random)
+	d, err := ekliptic.RandomScalar(random)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +119,7 @@ func SumPublicKeys(publicKeys ...[]byte) ([]byte, error) {
 			return nil, err
 		}
 
-		ekliptic.AddAffine(
-			sumX, sumY,
-			x, y,
-			sumX, sumY,
-		)
+		sumX, sumY = ekliptic.AddAffine(sumX, sumY, x, y)
 	}
 
 	sumPub := sumX.FillBytes(make([]byte, 32))

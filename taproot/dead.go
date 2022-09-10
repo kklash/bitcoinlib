@@ -25,16 +25,12 @@ var (
 var ErrDeadProofInvalid = errors.New("failed to validate proof of dead internal key")
 
 func buildDeadKey(r *big.Int) []byte {
-	rGx := new(big.Int)
-	rGy := new(big.Int)
-	ekliptic.MultiplyBasePoint(r, rGx, rGy)
+	rGx, rGy := ekliptic.MultiplyBasePoint(r)
 
 	// H + rG
-	deadX := new(big.Int)
-	ekliptic.AddAffine(
+	deadX, _ := ekliptic.AddAffine(
 		deadGeneratorX, deadGeneratorY,
 		rGx, rGy,
-		deadX, new(big.Int),
 	)
 	return deadX.FillBytes(make([]byte, 32))
 }
@@ -50,7 +46,7 @@ func BuildDeadKey(proof []byte) []byte {
 // Returns the schnorr-serialized public key and a proof that can be used
 // to verify the public key indeed has no private key, using VerifyDeadKey.
 func NewDeadKey(random io.Reader) (key, proof []byte, err error) {
-	r, err := ekliptic.NewPrivateKey(random)
+	r, err := ekliptic.RandomScalar(random)
 	if err != nil {
 		return nil, nil, err
 	}

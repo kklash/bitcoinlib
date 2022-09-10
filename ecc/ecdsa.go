@@ -25,9 +25,7 @@ func SignECDSA(privateKey, messageHash []byte) (r, s *big.Int) {
 	k := Q.Nonce(d, messageHash, sha256.New)
 	z := Q.Bits2int(messageHash)
 
-	r = new(big.Int)
-	s = new(big.Int)
-	ekliptic.SignECDSA(d, k, z, r, s)
+	r, s = ekliptic.SignECDSA(d, k, z)
 	return
 }
 

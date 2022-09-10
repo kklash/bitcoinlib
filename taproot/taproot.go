@@ -29,14 +29,10 @@ func TweakPublicKey(publicKey, h []byte) (qPub []byte, hasOddY bool, err error) 
 		return
 	}
 
-	tGx := new(big.Int)
-	tGy := new(big.Int)
-	ekliptic.MultiplyBasePoint(t, tGx, tGy)
+	tGx, tGy := ekliptic.MultiplyBasePoint(t)
 
 	// Q = P + hash(P, h)G
-	qx := new(big.Int)
-	qy := new(big.Int)
-	ekliptic.AddAffine(pubX, pubY, tGx, tGy, qx, qy)
+	qx, qy := ekliptic.AddAffine(pubX, pubY, tGx, tGy)
 
 	qPub = qx.FillBytes(make([]byte, 32))
 	hasOddY = qy.Bit(0) == 1
@@ -54,9 +50,7 @@ func TweakPrivateKey(privateKey, h []byte) ([]byte, error) {
 		return nil, fmt.Errorf("cannot tweak invalid private key")
 	}
 
-	pubX := new(big.Int)
-	pubY := new(big.Int)
-	ekliptic.MultiplyBasePoint(seckey, pubX, pubY)
+	pubX, pubY := ekliptic.MultiplyBasePoint(seckey)
 
 	if pubY.Bit(0) == 1 {
 		seckey = new(big.Int).Sub(ekliptic.Secp256k1_CurveOrder, seckey)

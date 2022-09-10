@@ -10,7 +10,6 @@ import (
 // public key using Diffie-Hellman key exchange (ECDH) (RFC 4753).
 // RFC5903 Section 9 states we should only return x.
 func SharedSecret(priv, pubX, pubY *big.Int) []byte {
-	var sharedKey, yValueIsUnused big.Int
-	ekliptic.MultiplyAffine(pubX, pubY, priv, &sharedKey, &yValueIsUnused, nil)
+	sharedKey, _ := ekliptic.MultiplyAffine(pubX, pubY, priv, nil)
 	return sharedKey.FillBytes(make([]byte, 32))
 }
