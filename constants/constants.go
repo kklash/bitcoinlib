@@ -67,6 +67,10 @@ const (
 
 	// TaprootLeafVersionTapscript is the version number used in Taproot Tapscript leaf nodes.
 	TaprootLeafVersionTapscript = 0xc0
+
+	// WitnessVersionZero is the first witness version introduced. It is used for bech32-encoded
+	// P2WPKH and P2WSH witness programs.
+	WitnessVersionZero = 0
 )
 
 // AddressFormat is used to describe different standardized script pubkey formats.

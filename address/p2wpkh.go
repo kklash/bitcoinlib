@@ -30,7 +30,7 @@ func MakeP2WPKHFromHash(pkHash [20]byte) (string, error) {
 
 	address, err := bech32.Encode(
 		constants.CurrentNetwork.Bech32,
-		constants.CurrentNetwork.WitnessVersion,
+		constants.WitnessVersionZero,
 		pkHash[:],
 	)
 

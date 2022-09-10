@@ -30,7 +30,7 @@ func MakeP2WSHFromHash(scriptHash [32]byte) (string, error) {
 
 	address, err := bech32.Encode(
 		constants.CurrentNetwork.Bech32,
-		constants.CurrentNetwork.WitnessVersion,
+		constants.WitnessVersionZero,
 		scriptHash[:],
 	)
 

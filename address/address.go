@@ -173,7 +173,7 @@ func Decode(address string) (constants.AddressFormat, []byte, error) {
 		err = fmt.Errorf("%w: failed to decode address as base58 or bech32", ErrInvalidAddress)
 	} else if hrp != constants.CurrentNetwork.Bech32 {
 		err = fmt.Errorf("%w: unexpected bech32 prefix '%s'", ErrInvalidAddress, hrp)
-	} else if witnessVersion != constants.CurrentNetwork.WitnessVersion {
+	} else if witnessVersion != constants.WitnessVersionZero {
 		err = fmt.Errorf("%w: unexpected witness version '0x%.2X'", ErrInvalidAddress, witnessVersion)
 	}
 	if err != nil {

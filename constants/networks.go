@@ -8,8 +8,7 @@ type Network struct {
 	Name   string
 
 	// Only availble for segwit-enabled coins.
-	Bech32         string
-	WitnessVersion byte
+	Bech32 string
 
 	// Constants used for base58-check encoding of addresses.
 	ScriptHash uint16
@@ -28,7 +27,6 @@ var (
 		Symbol:          "BTC",
 		Name:            "Bitcoin",
 		Bech32:          "bc",
-		WitnessVersion:  0,
 		ScriptHash:      5,
 		PubkeyHash:      0,
 		WIF:             128,
@@ -40,7 +38,6 @@ var (
 		Symbol:          "tBTC",
 		Name:            "Testnet Bitcoin",
 		Bech32:          "tb",
-		WitnessVersion:  0,
 		ScriptHash:      196,
 		PubkeyHash:      111,
 		WIF:             239,
@@ -52,7 +49,6 @@ var (
 		Symbol:          "LTC",
 		Name:            "Litecoin",
 		Bech32:          "ltc",
-		WitnessVersion:  0,
 		ScriptHash:      50,
 		PubkeyHash:      48,
 		WIF:             176,
