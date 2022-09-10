@@ -9,7 +9,8 @@ import (
 
 // MakeP2WSHFromHash creates a P2WSH output script using
 // the given script hash (hashed once with SHA256).
-//  00 <sha256_scripthash>
+//
+//	00 <sha256_scripthash>
 func MakeP2WSHFromHash(hash [32]byte) []byte {
 	script := new(bytes.Buffer)
 	script.WriteByte(constants.OP_0)
@@ -25,9 +26,10 @@ func MakeP2WSHFromScript(script []byte) []byte {
 }
 
 // IsP2WSH returns whether a byte slice is a valid P2WSH output script.
-//  script, _ := hex.DecodeString("0020a745dc51b20631cd78971b67274bc1b1cb06fb800a408f4184fb2bf00dfe9b9d")
-//  IsP2WSH(script) // true
-//  IsP2WSH(script[1:]) // false
+//
+//	script, _ := hex.DecodeString("0020a745dc51b20631cd78971b67274bc1b1cb06fb800a408f4184fb2bf00dfe9b9d")
+//	IsP2WSH(script) // true
+//	IsP2WSH(script[1:]) // false
 func IsP2WSH(script []byte) bool {
 	return script != nil &&
 		len(script) == 34 &&

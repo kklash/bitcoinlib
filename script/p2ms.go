@@ -9,7 +9,8 @@ import (
 // MakeP2MS creates a pay-to-M-of-N-multisig output script. The
 // sigsRequired parameter specifies M, and you can supply as many
 // public keys as you want as long as the number of public keys >= M.
-//  M <pubkey_1> <pubkey_2> ... <pubkey_N> N OP_CHECKMULTISIG
+//
+//	M <pubkey_1> <pubkey_2> ... <pubkey_N> N OP_CHECKMULTISIG
 func MakeP2MS(sigsRequired uint32, publicKeys ...[]byte) []byte {
 	if int(sigsRequired) > len(publicKeys) {
 		panic("cannot create P2MS script requiring more signatures than the number of available public keys")

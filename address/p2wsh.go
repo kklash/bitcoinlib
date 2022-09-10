@@ -7,6 +7,7 @@ import (
 )
 
 // MakeP2WSHFromScript creates a P2WSH address out of a given script.
+//
 // WARNING No script validation is performed in this
 // function. You won't be able to recover any coins to an
 // adress made with an invalid script.

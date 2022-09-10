@@ -9,7 +9,8 @@ import (
 
 // MakeP2PKHFromHash builds a canonical P2PKH output
 // script using the given public key hash.
-//  OP_DUP OP_HASH160 <pubkey_hash> OP_EQUALVERIFY OP_CHECKSIG
+//
+//	OP_DUP OP_HASH160 <pubkey_hash> OP_EQUALVERIFY OP_CHECKSIG
 func MakeP2PKHFromHash(hash [20]byte) []byte {
 	script := new(bytes.Buffer)
 	script.WriteByte(constants.OP_DUP)
@@ -24,7 +25,8 @@ func MakeP2PKHFromHash(hash [20]byte) []byte {
 // script using the given public key. Returns ErrInvalidPublicKeyLength
 // if the public key provided is not valid.
 func MakeP2PKHFromPublicKey(publicKey []byte) ([]byte, error) {
-	if len(publicKey) != 33 && len(publicKey) != 64 {
+	if len(publicKey) != PublicKeyCompressedLength &&
+		len(publicKey) != PublicKeyUncompressedLength {
 		return nil, ErrInvalidPublicKeyLength
 	}
 
@@ -32,9 +34,10 @@ func MakeP2PKHFromPublicKey(publicKey []byte) ([]byte, error) {
 }
 
 // Is P2PKH returns whether the given byte slice is a valid P2PKH output script.
-//  script, _ := hex.DecodeString("76a914c41c836560406c6169537f9dc9520184879f03e288ac")
-//  IsP2PKH(script) // true
-//  IsP2PKH(script[1:]) // false
+//
+//	script, _ := hex.DecodeString("76a914c41c836560406c6169537f9dc9520184879f03e288ac")
+//	IsP2PKH(script) // true
+//	IsP2PKH(script[1:]) // false
 func IsP2PKH(script []byte) bool {
 	return script != nil &&
 		len(script) == 25 &&

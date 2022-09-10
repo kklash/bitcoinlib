@@ -3,7 +3,6 @@ package address
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/kklash/bitcoinlib/base58check"
 	"github.com/kklash/bitcoinlib/bech32"
@@ -13,25 +12,26 @@ import (
 
 // Make can generate an address of any given AddressFormat. For example, if you want to create
 // a P2SH address, you pass data as a script.
-//  import (
-// 	 "github.com/kklash/bitcoinlib/address"
-// 	 "github.com/kklash/bitcoinlib/script"
-// 	 "encoding/hex"
-// 	 "log"
-//  )
+//
+//	 import (
+//		  "github.com/kklash/bitcoinlib/address"
+//		  "github.com/kklash/bitcoinlib/script"
+//		  "encoding/hex"
+//		  "log"
+//	 )
 //
 //
-//  func main() {
-// 	 pk1, _ := hex.DecodeString("023bab8446121c93bca9f38d58d59fb399276e620ac760124bcf5b62a16f4e7e37")
-// 	 pk2, _ := hex.DecodeString("0390c351adb0dd332ff7eaf1456294fdeb75ee8f0b9e9a61bc860692e3698974d7")
-// 	 redeemScript := script.MakeP2MS(2, pk1, pk2)
-// 	 multisigAddress, err := address.Make(address.P2SH, redeemScript)
-// 	 if err != nil {
-// 		log.Fatalln(err)
-// 	 }
+//	 func main() {
+//		  pk1, _ := hex.DecodeString("023bab8446121c93bca9f38d58d59fb399276e620ac760124bcf5b62a16f4e7e37")
+//		  pk2, _ := hex.DecodeString("0390c351adb0dd332ff7eaf1456294fdeb75ee8f0b9e9a61bc860692e3698974d7")
+//		  redeemScript := script.MakeP2MS(2, pk1, pk2)
+//		  multisigAddress, err := address.Make(address.P2SH, redeemScript)
+//		  if err != nil {
+//		    log.Fatalln(err)
+//		  }
 //
-//   log.Println(multisigAddress)
-//  }
+//	  log.Println(multisigAddress)
+//	 }
 func Make(addressFormat constants.AddressFormat, data []byte) (string, error) {
 	switch addressFormat {
 	case constants.FormatP2PKH:
@@ -48,56 +48,58 @@ func Make(addressFormat constants.AddressFormat, data []byte) (string, error) {
 }
 
 // MakeFromHash creates an address of the given addressFormat using a public-key or script-hash.
-// For P2SH, P2PKH and P2WPKH address formats, hashed must be a [20]byte array. For P2WSH,
-// hashed must be a [32]byte array. Returns ErrInvalidHashType if the type does not match.
-//  import (
-// 	 "github.com/kklash/bitcoinlib/address"
-// 	 "github.com/kklash/bitcoinlib/constants"
-// 	 "github.com/kklash/bitcoinlib/bhash"
-// 	 "encoding/hex"
-// 	 "log"
-//  )
+// For P2SH, P2PKH and P2WPKH address formats, hashed must be length 20. For P2WSH,
+// hashed must be length 32. Returns ErrInvalidHash if the slice length does not match.
 //
-//  func main() {
-// 	 pkHash, _ := hex.DecodeString("e79a6783b1546a18f7ef12c949d751b189cbf0e3")
-// 	 addrStr, err := address.MakeFromHash(constants.FormatP2PKH, pkHash, constants.BitcoinNetwork)
-// 	 if err != nil {
-// 		log.Fatalln(err)
-// 	 }
+//	 import (
+//		  "github.com/kklash/bitcoinlib/address"
+//		  "github.com/kklash/bitcoinlib/constants"
+//		  "github.com/kklash/bitcoinlib/bhash"
+//		  "encoding/hex"
+//		  "log"
+//	 )
 //
-//   log.Println(addrStr)
-//  }
-func MakeFromHash(addressFormat constants.AddressFormat, hashed interface{}) (string, error) {
+//	 func main() {
+//		  pkHash, _ := hex.DecodeString("e79a6783b1546a18f7ef12c949d751b189cbf0e3")
+//		  addrStr, err := address.MakeFromHash(constants.FormatP2PKH, pkHash)
+//		  if err != nil {
+//			  log.Fatalln(err)
+//		  }
+//
+//	    log.Println(addrStr)
+//	 }
+func MakeFromHash(addressFormat constants.AddressFormat, hashed []byte) (string, error) {
 	if hashed == nil {
-		return "", ErrInvalidHashType
+		return "", ErrInvalidHash
 	}
 
-	hashedType := reflect.TypeOf(hashed)
-	if hashedType.Kind() != reflect.Array {
-		return "", ErrInvalidHashType
-	} else if hashedType.Elem() != reflect.TypeOf(byte(0)) {
-		return "", ErrInvalidHashType
-	}
-
-	var desiredArrayLength int
+	var desiredHashLength int
 	if addressFormat == constants.FormatP2WSH {
-		desiredArrayLength = 32
+		desiredHashLength = 32
 	} else {
-		desiredArrayLength = 20
+		desiredHashLength = 20
 	}
-	if hashedType.Len() != desiredArrayLength {
-		return "", ErrInvalidHashType
+	if len(hashed) != desiredHashLength {
+		return "", ErrInvalidHash
 	}
 
 	switch addressFormat {
 	case constants.FormatP2PKH:
-		return MakeP2PKHFromHash(hashed.([20]byte)), nil
+		var h [20]byte
+		copy(h[:], hashed)
+		return MakeP2PKHFromHash(h), nil
 	case constants.FormatP2SH:
-		return MakeP2SHFromHash(hashed.([20]byte)), nil
+		var h [20]byte
+		copy(h[:], hashed)
+		return MakeP2SHFromHash(h), nil
 	case constants.FormatP2WPKH:
-		return MakeP2WPKHFromHash(hashed.([20]byte))
+		var h [20]byte
+		copy(h[:], hashed)
+		return MakeP2WPKHFromHash(h)
 	case constants.FormatP2WSH:
-		return MakeP2WSHFromHash(hashed.([32]byte))
+		var h [32]byte
+		copy(h[:], hashed)
+		return MakeP2WSHFromHash(h)
 	default:
 		return "", ErrInvalidAddressFormat
 	}

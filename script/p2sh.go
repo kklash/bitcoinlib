@@ -9,7 +9,8 @@ import (
 
 // MakeP2SHFromHash creates a P2SH output using
 // the given hash of a redeem script.
-//  OP_HASH160 <script_hash> OP_EQUAL
+//
+//	OP_HASH160 <script_hash> OP_EQUAL
 func MakeP2SHFromHash(hash [20]byte) []byte {
 	scriptPubKey := new(bytes.Buffer)
 	scriptPubKey.WriteByte(constants.OP_HASH160)
@@ -26,9 +27,10 @@ func MakeP2SHFromScript(script []byte) []byte {
 }
 
 // IsP2SH returns whether a byte slice is a valid P2SH output script.
-//  script, _ := hex.DecodeString("a914aefdfa5219b0ecda7f0f75a2221111769dc848c187")
-//  IsP2SH(script) // true
-//  IsP2SH(script[2:]) // false
+//
+//	script, _ := hex.DecodeString("a914aefdfa5219b0ecda7f0f75a2221111769dc848c187")
+//	IsP2SH(script) // true
+//	IsP2SH(script[2:]) // false
 func IsP2SH(scriptPubKey []byte) bool {
 	return scriptPubKey != nil &&
 		len(scriptPubKey) == 23 &&

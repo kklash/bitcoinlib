@@ -23,19 +23,19 @@ var (
 //
 // Instances of these types can be arranged in a binary tree structure like so.
 //
-//  var mast Hasher = &MastBranch{
-//  	Left: &MastLeaf{
-//  		Version: 0xc0,
-//  		Script:  []byte{},
-//  	},
-//  	Right: &MastBranch{
-//  		Left: MastLeafHash{1, 2, 3},
-//  		Right: &MastLeaf{
-//  			Version: 0xc0,
-//  			Script:  []byte{},
-//  		},
-//  	},
-//  }
+//	var mast Hasher = &MastBranch{
+//		Left: &MastLeaf{
+//			Version: 0xc0,
+//			Script:  []byte{},
+//		},
+//		Right: &MastBranch{
+//			Left: MastLeafHash{1, 2, 3},
+//			Right: &MastLeaf{
+//				Version: 0xc0,
+//				Script:  []byte{},
+//			},
+//		},
+//	}
 type Hasher interface {
 	Hash() [32]byte
 }

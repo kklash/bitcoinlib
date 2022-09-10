@@ -9,7 +9,7 @@ import (
 // MakeP2WPKHFromPublicKey creates a P2WPKH segwit address using the given
 // compressed public key.
 func MakeP2WPKHFromPublicKey(publicKey []byte) (string, error) {
-	if len(publicKey) != 33 {
+	if len(publicKey) != PublicKeyCompressedLength {
 		return "", ErrInvalidPublicKeyLength
 	}
 

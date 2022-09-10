@@ -7,6 +7,7 @@ import (
 )
 
 // MakeP2SHFromScript creates a P2SH address using the given script.
+//
 // WARNING No script validation is performed in this
 // function. You won't be able to recover any coins to an
 // address made with an invalid script.

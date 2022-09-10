@@ -10,7 +10,8 @@ import (
 // MakeP2WPKHFromHash creates an output script for P2WPKH using the given
 // public key hash. Note that you MUST use a compressed public key or
 // you will not be able to redeem any UTXOs sent to this output script.
-//  00 <pubkey_hash>
+//
+//	00 <pubkey_hash>
 func MakeP2WPKHFromHash(hash [20]byte) []byte {
 	script := new(bytes.Buffer)
 	script.WriteByte(constants.OP_0)
@@ -29,9 +30,10 @@ func MakeP2WPKHFromPublicKey(publicKey []byte) ([]byte, error) {
 }
 
 // IsP2WPKH returns whether a byte slice is a valid P2WPKH output script.
-//  script, _ := hex.DecodeString("0014b21658ea3960030b4dc4634f51ecae0505daf2e6")
-//  IsP2WPKH(script) // true
-//  IsP2WPKH(script[1:]) // false
+//
+//	script, _ := hex.DecodeString("0014b21658ea3960030b4dc4634f51ecae0505daf2e6")
+//	IsP2WPKH(script) // true
+//	IsP2WPKH(script[1:]) // false
 func IsP2WPKH(script []byte) bool {
 	return script != nil &&
 		len(script) == 22 &&
