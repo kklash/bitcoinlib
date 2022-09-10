@@ -9,7 +9,8 @@ import (
 // MakeP2PKHFromPublicKey creates a canonical P2PKH address using
 // the given compressed or uncompressed public key.
 func MakeP2PKHFromPublicKey(publicKey []byte) (string, error) {
-	if len(publicKey) != 33 && len(publicKey) != 64 {
+	if len(publicKey) != PublicKeyCompressedLength &&
+		len(publicKey) != PublicKeyUncompressedLength {
 		return "", ErrInvalidPublicKeyLength
 	}
 

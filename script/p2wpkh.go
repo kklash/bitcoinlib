@@ -22,7 +22,7 @@ func MakeP2WPKHFromHash(hash [20]byte) []byte {
 // MakeP2WPKHFromPublicKey creates an output script for P2WPKH using the given
 // public key. Returns ErrInvalidScript if you do not pass a compressed public key.
 func MakeP2WPKHFromPublicKey(publicKey []byte) ([]byte, error) {
-	if len(publicKey) != 33 {
+	if len(publicKey) != PublicKeyCompressedLength {
 		return nil, ErrInvalidPublicKeyLength
 	}
 
