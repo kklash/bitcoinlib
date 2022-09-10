@@ -23,14 +23,14 @@ var (
 //
 // Instances of these types can be arranged in a binary tree structure like so.
 //
-//	var mast Hasher = &MastBranch{
-//		Left: &MastLeaf{
+//	var mast Hasher = MastBranch{
+//		&MastLeaf{
 //			Version: 0xc0,
 //			Script:  []byte{},
 //		},
-//		Right: &MastBranch{
-//			Left: MastLeafHash{1, 2, 3},
-//			Right: &MastLeaf{
+//		MastBranch{
+//			MastLeafHash{1, 2, 3},
+//			&MastLeaf{
 //				Version: 0xc0,
 //				Script:  []byte{},
 //			},
@@ -67,20 +67,18 @@ func (hashed MastLeafHash) Hash() [32]byte {
 	return hashed
 }
 
-// MastBranch represents a branch node in a merkelized abstract syntax tree with two child nodes.
-type MastBranch struct {
-	// Left and Right must always be of type *MastBranch, *MastLeaf, or MastLeafHash.
-	Left, Right Hasher
-}
+// MastBranch represents a branch node in a merkelized abstract syntax tree with two child nodes,
+// which must satisfy type Hasher.
+type MastBranch [2]Hasher
 
 // Hash hashes both branches of the MastBranch and returns their hash. Panics if either
 // the left or the right branch is nil.
-func (mn *MastBranch) Hash() (hashed [32]byte) {
-	if mn.Left == nil || mn.Right == nil {
+func (mn MastBranch) Hash() (hashed [32]byte) {
+	if mn[0] == nil || mn[1] == nil {
 		panic("MastBranch is missing a node - MAST trees should always have two child elements")
 	}
-	leftH := mn.Left.Hash()
-	rightH := mn.Right.Hash()
+	leftH := mn[0].Hash()
+	rightH := mn[1].Hash()
 
 	// Sorting ensures the tree is deterministic regardless of how branches are arranged WRT left vs right
 	if bytes.Compare(leftH[:], rightH[:]) == 1 {
