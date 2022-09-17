@@ -1,60 +1,66 @@
 package bip39
 
 import (
+	"crypto/sha256"
 	"errors"
-	"strings"
-
-	"github.com/kklash/bitcoinlib/bhash"
-	"github.com/kklash/bits"
+	"math/big"
 )
 
 var (
-	// ErrInvalidMnemonic is returned by Decode if the mnemonic has an invalid length,
-	// or if any of its words are not in the English BIP39 word list.
-	ErrInvalidMnemonic = errors.New("Unable to decode invalid mnemonic")
+	// ErrInvalidWordsLength is returned by DecodeWords if the given mnemonic is of
+	// an incorrect length.
+	ErrInvalidWordsLength = errors.New(
+		"invalid BIP39 mnemonic length; must be 12, 15, 18, 21, or 24 words",
+	)
 
-	// ErrBadChecksum is returned by Decode if the SHA-256 checksum of the mnemonic does not
-	// match the checksum bits appended to the end of the mnemonic.
-	ErrBadChecksum = errors.New("Mnemonic checksum is invalid")
+	// ErrInvalidWord is returned by DecodeWords if the given mnemonic contains an unknown word.
+	ErrInvalidWord = errors.New("BIP39 mnemonic contains word not found in english word list")
+
+	// ErrInvalidChecksum is returned by DecodeWords if the given mnemonic fails checksum validation.
+	ErrInvalidChecksum = errors.New("BIP39 mnemonic has invalid checksum")
 )
 
-// Decode decodes the given English BIP39 mnemonic and returns the entropy encoded therein.
-// Returns ErrInvalidMnemonic if the mnemonic is of an invalid length, or if any of its words
-// do not exist in the word list. Returns ErrBadChecksum if the checksum at the end of the
-// entropy does not validate correctly.
-func Decode(mnemonic string) ([]byte, error) {
-	words := strings.Split(mnemonic, " ")
-
-	if len(words)%3 != 0 {
-		return nil, ErrInvalidMnemonic
+// DecodeWords decodes the given mnemonic into the entropy it encodes, while
+// also verifying the length of the mnemonic and its checksum.
+//
+// Returns any one of ErrInvalidWordsLength, ErrInvalidWord, or ErrInvalidChecksum
+// if the mnemonic is not valid.
+func DecodeWords(words []string) (entropy []byte, err error) {
+	nWords := len(words)
+	switch nWords {
+	case 12, 15, 18, 21, 24:
+	default:
+		err = ErrInvalidWordsLength
+		return
 	}
 
-	bitGroups := make([]bits.Bits, len(words))
-	for i, word := range words {
-		wordIndex, ok := WordMap[word]
+	payload := new(big.Int)
+	for _, word := range words {
+		index, ok := WordMap[word]
 		if !ok {
-			return nil, ErrInvalidMnemonic
+			err = ErrInvalidWord
+			return
 		}
 
-		bitGroups[i] = bits.UintToBits(uint16(wordIndex)).Trim().PadLeft(11)
+		payload.Lsh(payload, 11)
+		payload.Or(payload, big.NewInt(int64(index)))
 	}
 
-	entropyBitsWithChecksum := bits.Join(bitGroups)
-	cs := len(entropyBitsWithChecksum) % 32
-	csPos := len(entropyBitsWithChecksum) - cs
+	nChecksumBits := nWords / 3
+	nEntropyBits := nWords*11 - nChecksumBits
 
-	entropyBits := entropyBitsWithChecksum[:csPos]
-	checksumBits := entropyBitsWithChecksum[csPos:]
+	checksumMask := big.NewInt(0xff >> (8 - nChecksumBits))
+	checksum := byte(new(big.Int).And(payload, checksumMask).Uint64())
 
-	entropy := entropyBits.Bytes()
-	hashed := bhash.Sha256(entropy)
-	hashBits := bits.BytesToBits(hashed[:cs])
+	payload.Rsh(payload, uint(nChecksumBits))
+	entropy = payload.FillBytes(make([]byte, nEntropyBits/8))
 
-	for i := 0; i < cs; i++ {
-		if checksumBits[i] != hashBits[i] {
-			return nil, ErrBadChecksum
-		}
+	hashed := sha256.Sum256(entropy)
+	expectedChecksumBits := hashed[0] >> (8 - nChecksumBits)
+	if checksum != expectedChecksumBits {
+		err = ErrInvalidChecksum
+		return
 	}
 
-	return entropy, nil
+	return
 }

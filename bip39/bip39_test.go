@@ -1,74 +1,113 @@
-package bip39
+package bip39_test
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
+	"strings"
 	"testing"
 
-	"github.com/kklash/bitcoinlib/bip32"
-	"github.com/kklash/bitcoinlib/constants"
+	"github.com/kklash/bitcoinlib/bip39"
 )
 
-const TestVectorPassphrase = "TREZOR"
+// Test vectors sourced from:
+//
+//	https://github.com/trezor/python-mnemonic/blob/e3b883007019c5156762aee8cdc3a31f3fc82c80/vectors.json
+//
+//go:embed test_vectors.json
+var testVectorsJSON []byte
 
-func TestBip39(t *testing.T) {
-	test := func(entHex, expectedMnemonic, expectedSeedHex, expectedXpriv string) {
-		entropy, _ := hex.DecodeString(entHex)
-		mnemonic, err := Encode(entropy)
-		if err != nil {
-			t.Errorf("Failed to convert data to mnemonic: %s\nError: %s", expectedMnemonic, err)
-			return
-		}
+type Hex []byte
 
-		if mnemonic != expectedMnemonic {
-			t.Errorf("Mnemonic does not match expected\nWanted %s\nGot    %s", expectedMnemonic, mnemonic)
-			return
-		}
-
-		decoded, err := Decode(mnemonic)
-		if err != nil {
-			t.Errorf("Failed to decode mnemonic: %s\nError: %s", mnemonic, err)
-			return
-		}
-
-		if decodedHex := hex.EncodeToString(decoded); decodedHex != entHex {
-			t.Errorf("Decoded entropy does not match\nWanted %s\nGot    %s", entHex, decodedHex)
-			return
-		}
-
-		seed := DeriveSeed(mnemonic, TestVectorPassphrase)
-		if hex.EncodeToString(seed) != expectedSeedHex {
-			t.Errorf("Derived seed does not match fixture\nWanted %s\nGot    %x", expectedSeedHex, seed)
-			return
-		}
-
-		masterKey, chainCode, err := bip32.GenerateMasterKey(seed)
-		if err != nil {
-			t.Errorf("Failed to derive master key: %s\nError: %s", expectedXpriv, err)
-			return
-		}
-
-		xpriv := bip32.SerializePrivate(masterKey, chainCode, nil, 0, 0, constants.BitcoinNetwork.ExtendedPrivate)
-		if xpriv != expectedXpriv {
-			t.Errorf("BIP32 derived master key does not match fixture\nWanted %s\nGot    %s", expectedXpriv, xpriv)
-			return
-		}
+func (h *Hex) UnmarshalJSON(hexJSON []byte) error {
+	var hexString string
+	if err := json.Unmarshal(hexJSON, &hexString); err != nil {
+		return err
 	}
-
-	var fixtures [][]string
-	data, err := ioutil.ReadFile("test_vectors.json")
+	decoded, err := hex.DecodeString(hexString)
 	if err != nil {
-		t.Errorf("Failed to read test vectors: %s", err)
-		return
+		return err
 	}
+	*h = Hex(decoded)
+	return nil
+}
 
-	if err := json.Unmarshal(data, &fixtures); err != nil {
-		t.Errorf("Failed to decode test vectors: %s", err)
-		return
+type BIP39TestVector struct {
+	Entropy  Hex
+	Mnemonic string
+	Seed     Hex
+}
+
+var testVectors []*BIP39TestVector
+
+func init() {
+	if err := json.Unmarshal(testVectorsJSON, &testVectors); err != nil {
+		panic(fmt.Sprintf("failed to decode BIP39 test vectors: %s", err))
 	}
+}
 
-	for _, fixture := range fixtures {
-		test(fixture[0], fixture[1], fixture[2], fixture[3])
+// Confirms encoding of entropy works.
+func TestEncodeToWords(t *testing.T) {
+	for _, testVector := range testVectors {
+		words, err := bip39.EncodeToWords(testVector.Entropy)
+		if err != nil {
+			t.Errorf("failed to encode entropy %x under BIP39: %s", testVector.Entropy, err)
+			return
+		}
+
+		mnemonic := strings.Join(words, " ")
+		if mnemonic != testVector.Mnemonic {
+			t.Errorf("invalid mnemonic\nWanted %s\nGot    %s", testVector.Mnemonic, mnemonic)
+			continue
+		}
+	}
+}
+
+// Confirms decoding of mnemonics works.
+func TestDecodeWords(t *testing.T) {
+	for _, testVector := range testVectors {
+		words := strings.Split(testVector.Mnemonic, " ")
+		entropy, err := bip39.DecodeWords(words)
+		if err != nil {
+			t.Errorf("failed to decode valid bip39 mnemonic: %s", err)
+			return
+		}
+
+		if !bytes.Equal(entropy, testVector.Entropy) {
+			t.Errorf("entropy does not match expected\nWanted %x\nGot    %x", testVector.Entropy, entropy)
+			continue
+		}
+	}
+}
+
+// Confirms hashing of a mnemonic into a seed works.
+func TestDeriveSeed(t *testing.T) {
+	for _, testVector := range testVectors {
+		words := strings.Split(testVector.Mnemonic, " ")
+		seed := bip39.DeriveSeed(words, "TREZOR")
+
+		if !bytes.Equal(seed, testVector.Seed) {
+			t.Errorf("derived seed does not match expected\nWanted %x\nGot    %x", testVector.Seed, seed)
+			continue
+		}
+	}
+}
+
+func BenchmarkDecodeWords(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		bip39.DecodeWords([]string{
+			"scheme", "spot", "photo", "card", "baby", "mountain",
+			"device", "kick", "cradle", "pact", "join", "borrow",
+		})
+	}
+}
+
+func BenchmarkEncodeToWords(b *testing.B) {
+	entropy, _ := hex.DecodeString("c0ba5a8e914111210f2bd131f3d5e08d")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bip39.EncodeToWords(entropy)
 	}
 }
